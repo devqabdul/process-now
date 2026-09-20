@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# Nothing by default; each job asks for exactly what it needs.
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # release-please reads the Conventional Commits since the last tag, keeps a
+  # "chore(release)" PR up to date with the next version and the changelog, and cuts
+  # the tag + GitHub release when that PR is merged. `frontend/` and `backend/` are
+  # versioned independently: commits are attributed by the paths they touch, so the
+  # existing `frontend`/`backend` commit scopes need no extra configuration.
+  release-please:
+    name: Release PR / tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      frontend_released: ${{ steps.rp.outputs['frontend--release_created'] }}
+      frontend_version: ${{ steps.rp.outputs['frontend--version'] }}
+      backend_released: ${{ steps.rp.outputs['backend--release_created'] }}
+      backend_version: ${{ steps.rp.outputs['backend--version'] }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: rp
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .github/release-please-config.json
+          manifest-file: .github/.release-please-manifest.json
+
+  publish-frontend:
+    name: Publish frontend image
+    needs: release-please
+    if: needs.release-please.outputs.frontend_released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # VITE_* are compiled into the bundle, so the published image is tied to one
+      # environment. Fail loudly rather than publish an image that silently points at
+      # localhost. Set these as repository *variables* (not secrets — they end up in
+      # the JavaScript anyway): Settings → Secrets and variables → Actions → Variables.
+      - name: Require the frontend build variables
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_APP_ENV: ${{ vars.VITE_APP_ENV }}
+        run: |
+          : "${VITE_API_BASE_URL:?set the VITE_API_BASE_URL repository variable}"
+          : "${VITE_APP_ENV:?set the VITE_APP_ENV repository variable}"
+
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # metadata-action lowercases the image name, which GHCR requires and
+      # github.repository does not guarantee.
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/frontend
+          tags: |
+            type=raw,value=${{ needs.release-please.outputs.frontend_version }}
+            type=raw,value=latest
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL }}
+            VITE_APP_ENV=${{ vars.VITE_APP_ENV }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+  publish-backend:
+    name: Publish backend image
+    needs: release-please
+    if: needs.release-please.outputs.backend_released == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=raw,value=${{ needs.release-please.outputs.backend_version }}
+            type=raw,value=latest
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+  # ---------------------------------------------------------------------------
+  # DEPLOY — intentionally not written. Hosting is not chosen (docs/backend-plan.md
+  # lists it as an open question), and guessing a provider here would be a config
+  # that looks authoritative and is wrong.
+  #
+  # When it is chosen, a deploy job attaches HERE: after the image is published, as
+  # a job that `needs: [publish-frontend]` or `[publish-backend]`. Roughly:
+  #
+  # deploy-backend:
+  #   needs: publish-backend
+  #   runs-on: ubuntu-latest
+  #   # A GitHub Environment is what adds the approval gate and scopes the secrets to
+  #   # this job; create it under Settings → Environments and add required reviewers.
+  #   environment: production
+  #   permissions:
+  #     contents: read
+  #     packages: read
+  #   steps:
+  #     # 1. Apply migrations BEFORE the new image serves traffic, exactly once.
+  #     #    `prisma migrate deploy` is never run from the container start command:
+  #     #    every replica would race the others for the migration lock.
+  #     #    Needs: DATABASE_URL (the Supabase session pooler URL) as an environment
+  #     #    secret, and an image with the Prisma CLI — `--target build` of
+  #     #    backend/Dockerfile is the one that has it.
+  #     # 2. Tell the host to run
+  #     #    ghcr.io/<owner>/<repo>/backend:${{ needs.release-please.outputs.backend_version }}
+  #     #    Needs: whatever credential that host uses (a cloud OIDC role is preferable
+  #     #    to a long-lived key), plus JWT_SECRET and WEB_ORIGIN as environment secrets.
+  #     # 3. Wait for /health/ready to pass before marking the deploy green.
+  #     #
+  #     # The frontend is static files: its "deploy" is either running the published
+  #     # nginx image or uploading frontend/build to a CDN. Remember the image is
+  #     # environment-specific (VITE_* baked in), so one image cannot serve both
+  #     # staging and production.
+  # ---------------------------------------------------------------------------

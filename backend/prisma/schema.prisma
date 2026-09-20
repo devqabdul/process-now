@@ -1,0 +1,285 @@
+// Data model: ../../docs/module-design.md
+// Tables and columns are snake_case in Postgres; fields are camelCase in code.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  received
+  processing
+  returned
+  cancelled
+}
+
+enum BillOn {
+  in
+  out
+}
+
+/// Reference data, seeded by migration. `key` is what code and the JWT carry.
+model Role {
+  key         String  @id
+  label       String
+  description String?
+  /// design-token name, not a hex: the UI maps it to its own palette
+  /// ('brand' | 'warning' | …) so light and dark themes stay consistent
+  accent      String  @default("brand")
+  /// display order in a picker
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model Company {
+  id           String  @id @default(uuid(7)) @db.Uuid
+  name         String
+  gstNo        String? @map("gst_no")
+  /// shown in front of order and bill numbers, e.g. "FN" → FN-0001. null = plain numbers
+  numberPrefix String? @map("number_prefix")
+  /// { electricityRate, gstRate }: see src/common/company-settings.ts
+  settings     Json    @default("{}")
+  nextOrderNo  Int     @default(1) @map("next_order_no")
+  nextBillNo   Int     @default(1) @map("next_bill_no")
+  /// false suspends the company: nobody from it can sign in
+  isActive     Boolean @default(true) @map("is_active")
+
+  users        User[]
+  vendors      Vendor[]
+  serviceTypes ServiceType[]
+  orders       Order[]
+  bills        Bill[]
+  payments     Payment[]
+  dailyLogs    DailyLog[]
+  /// audit: who created the row, and when
+  createdAt    DateTime      @default(now()) @map("created_at")
+  createdBy    String?       @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at")
+  updatedBy    String?       @map("updated_by") @db.Uuid
+
+  @@index([createdBy])
+  @@map("companies")
+}
+
+/// Check constraints (added in the init migration): phone or email is set;
+/// super_admin has no company, company_admin has one.
+model User {
+  id           String  @id @default(uuid(7)) @db.Uuid
+  companyId    String? @map("company_id") @db.Uuid
+  role         String
+  roleRef      Role    @relation(fields: [role], references: [key])
+  name         String
+  /// 10 digits, normalized
+  phone        String? @unique
+  /// lowercase
+  email        String? @unique
+  passwordHash String  @map("password_hash")
+  /// bumped on logout and password change; a token with an older value is rejected
+  tokenVersion Int     @default(0) @map("token_version")
+  /// false disables this login without deleting the person
+  isActive     Boolean @default(true) @map("is_active")
+
+  company   Company? @relation(fields: [companyId], references: [id])
+  /// audit: who created the row, and when
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  @@index([companyId])
+  @@map("users")
+}
+
+model Vendor {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  companyId String  @map("company_id") @db.Uuid
+  name      String
+  phone     String
+  address   String?
+  /// false retires the vendor: hidden from new orders, kept on old ones
+  isActive  Boolean @default(true) @map("is_active")
+
+  company   Company  @relation(fields: [companyId], references: [id])
+  orders    Order[]
+  /// audit: who created the row, and when
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  @@index([companyId])
+  @@index([createdBy])
+  @@map("vendors")
+}
+
+model ServiceType {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  companyId String  @map("company_id") @db.Uuid
+  name      String
+  /// false hides it from new orders; old orders keep referencing it
+  isActive  Boolean @default(true) @map("is_active")
+  /// label shown in UI and bills: 'piece', 'kg', ...
+  unit      String
+  basePrice Decimal @map("base_price") @db.Decimal(12, 2)
+  baseCost  Decimal @map("base_cost") @db.Decimal(12, 2)
+  billOn    BillOn  @map("bill_on")
+  /// [{ group, multi, choices: [{ name, price, cost }] }]
+  options   Json    @default("[]")
+
+  company    Company     @relation(fields: [companyId], references: [id])
+  orderItems OrderItem[]
+  /// audit: who created the row, and when
+  createdAt  DateTime    @default(now()) @map("created_at")
+  createdBy  String?     @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt  DateTime    @default(now()) @updatedAt @map("updated_at")
+  updatedBy  String?     @map("updated_by") @db.Uuid
+
+  @@index([companyId])
+  @@index([createdBy])
+  @@map("service_types")
+}
+
+model Order {
+  id         String      @id @default(uuid(7)) @db.Uuid
+  companyId  String      @map("company_id") @db.Uuid
+  vendorId   String      @map("vendor_id") @db.Uuid
+  orderNo    Int         @map("order_no")
+  status     OrderStatus @default(received)
+  receivedAt DateTime    @default(now()) @map("received_at")
+  returnedAt DateTime?   @map("returned_at")
+  notes      String?
+
+  company   Company     @relation(fields: [companyId], references: [id])
+  vendor    Vendor      @relation(fields: [vendorId], references: [id])
+  items     OrderItem[]
+  bill      Bill?
+  /// audit: who created the row, and when
+  createdAt DateTime    @default(now()) @map("created_at")
+  createdBy String?     @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt DateTime    @default(now()) @updatedAt @map("updated_at")
+  updatedBy String?     @map("updated_by") @db.Uuid
+
+  @@unique([companyId, orderNo])
+  @@index([companyId, status])
+  @@index([companyId, returnedAt])
+  @@index([companyId, receivedAt])
+  @@index([companyId, vendorId])
+  @@index([createdBy])
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  orderId         String   @map("order_id") @db.Uuid
+  serviceTypeId   String   @map("service_type_id") @db.Uuid
+  /// snapshot: editing the service type later must not change this order's bill
+  billOn          BillOn   @map("bill_on")
+  /// snapshot of the chosen options at creation time
+  selectedOptions Json     @default("[]") @map("selected_options")
+  qtyIn           Decimal  @map("qty_in") @db.Decimal(12, 3)
+  qtyOut          Decimal? @map("qty_out") @db.Decimal(12, 3)
+  unitPrice       Decimal  @map("unit_price") @db.Decimal(12, 2)
+  unitCost        Decimal  @map("unit_cost") @db.Decimal(12, 2)
+  /// set when the order is returned
+  amount          Decimal? @db.Decimal(12, 2)
+
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  serviceType ServiceType @relation(fields: [serviceTypeId], references: [id])
+  /// audit: who created the row, and when
+  createdAt   DateTime    @default(now()) @map("created_at")
+  createdBy   String?     @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at")
+  updatedBy   String?     @map("updated_by") @db.Uuid
+
+  @@index([orderId])
+  @@index([serviceTypeId])
+  @@map("order_items")
+}
+
+model Bill {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  companyId  String    @map("company_id") @db.Uuid
+  orderId    String    @unique @map("order_id") @db.Uuid
+  billNo     Int       @map("bill_no")
+  subtotal   Decimal   @db.Decimal(12, 2)
+  gstAmount  Decimal?  @map("gst_amount") @db.Decimal(12, 2)
+  total      Decimal   @db.Decimal(12, 2)
+  /// maintained inside the payment transaction, so due/paid can be filtered in SQL
+  amountPaid Decimal   @default(0) @map("amount_paid") @db.Decimal(12, 2)
+  /// set when the bill is voided; voided bills are excluded from dues and the dashboard
+  voidedAt   DateTime? @map("voided_at")
+  voidReason String?   @map("void_reason")
+  issuedAt   DateTime  @default(now()) @map("issued_at")
+
+  company   Company   @relation(fields: [companyId], references: [id])
+  order     Order     @relation(fields: [orderId], references: [id])
+  payments  Payment[]
+  /// audit: who created the row, and when
+  createdAt DateTime  @default(now()) @map("created_at")
+  createdBy String?   @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  updatedBy String?   @map("updated_by") @db.Uuid
+
+  @@unique([companyId, billNo])
+  @@index([companyId, issuedAt])
+  @@index([createdBy])
+  @@map("bills")
+}
+
+model Payment {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  billId    String   @map("bill_id") @db.Uuid
+  amount    Decimal  @db.Decimal(12, 2)
+  /// 'cash' | 'upi' | 'bank' | ...; validated in the DTO
+  method    String
+  paidAt    DateTime @default(now()) @map("paid_at")
+
+  company   Company  @relation(fields: [companyId], references: [id])
+  bill      Bill     @relation(fields: [billId], references: [id])
+  /// audit: who created the row, and when
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  @@index([companyId])
+  @@index([billId])
+  @@index([createdBy])
+  @@map("payments")
+}
+
+model DailyLog {
+  id               String   @id @default(uuid(7)) @db.Uuid
+  companyId        String   @map("company_id") @db.Uuid
+  logDate          DateTime @map("log_date") @db.Date
+  machineHours     Decimal  @default(0) @map("machine_hours") @db.Decimal(6, 2)
+  electricityUnits Decimal  @default(0) @map("electricity_units") @db.Decimal(10, 2)
+  notes            String?
+
+  company   Company  @relation(fields: [companyId], references: [id])
+  /// audit: who created the row, and when
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by") @db.Uuid
+
+  @@unique([companyId, logDate])
+  @@map("daily_logs")
+}
