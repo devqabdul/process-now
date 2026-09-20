@@ -1,0 +1,16 @@
+node_modules/
+.DS_Store
+
+# Yarn Berry
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+.pnp.*
+
+# Tool state, not source
+.diagram-design
+
+# Generated design mockups: ~420 KB of single-file HTML that git would carry
+# forever. The philosophy note is the part worth versioning.
+.design/*.html

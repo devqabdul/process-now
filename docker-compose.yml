@@ -1,0 +1,81 @@
+# Local development only. The real database is Supabase (see docs/backend-plan.md):
+# this postgres service exists so the stack runs offline and so e2e tests have
+# something to point at. Nothing here is a deployment description.
+#
+#   docker compose up --build
+#   docker compose --profile migrate run --rm migrate    # once, before the first boot
+#
+# The API opens its connection pool on start and exits if Postgres is unreachable,
+# and every query 500s until the migrations have been applied — so run the migrate
+# profile before expecting anything to work.
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: process-now
+      POSTGRES_PASSWORD: process-now
+      POSTGRES_DB: process-now
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U process-now -d process-now']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      # Local Postgres speaks plain TCP on the compose network. Against Supabase this
+      # is the session pooler URL (port 5432) instead.
+      DATABASE_URL: postgresql://process-now:process-now@postgres:5432/process-now
+      # Local-only placeholder, 32+ chars. Generate a real one per environment:
+      # openssl rand -base64 48
+      JWT_SECRET: local-development-only-not-a-real-secret-0000
+      # Must match where the browser loads the frontend from: the session cookie is
+      # SameSite=Lax.
+      WEB_ORIGIN: http://localhost:9090
+      PORT: '1010'
+      NODE_ENV: development
+      TRUST_PROXY: '0'
+      DB_POOL_MAX: '10'
+    ports:
+      - '1010:1010'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      # Baked in at build time, so changing these needs a rebuild, not a restart.
+      # localhost, not `backend`: this URL is fetched by the browser, not by a container.
+      args:
+        VITE_API_BASE_URL: http://localhost:1010/api/v1
+        VITE_APP_ENV: local
+    ports:
+      - '9090:8080'
+    depends_on:
+      - backend
+
+  # Migrations are a release step, never a container-start step — every replica would
+  # race the others for the migration lock. The `build` stage is reused because it is
+  # the only image with the Prisma CLI and the schema.
+  migrate:
+    profiles: ['migrate']
+    build:
+      context: ./backend
+      target: build
+    environment:
+      DATABASE_URL: postgresql://process-now:process-now@postgres:5432/process-now
+    command: ['yarn', 'migrate:deploy']
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

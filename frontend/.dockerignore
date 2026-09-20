@@ -1,0 +1,18 @@
+node_modules/
+build/
+dev-dist/
+coverage/
+.git/
+.yarn/install-state.gz
+
+# Every env file stays out: VITE_* comes from --build-arg, and a host-specific
+# .env.local baked into an image is exactly the leak this prevents.
+.env
+.env.*
+!.env.example
+
+docs/
+README.md
+CLAUDE.md
+*.log
+.DS_Store

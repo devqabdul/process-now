@@ -1,0 +1,29 @@
+{
+  "name": "process-now",
+  "private": true,
+  "type": "module",
+  "packageManager": "yarn@4.18.0",
+  "scripts": {
+    "prepare": "husky",
+    "verify": "yarn --cwd frontend typecheck && yarn --cwd frontend lint && yarn --cwd frontend test && yarn --cwd backend typecheck && yarn --cwd backend lint && yarn --cwd backend test"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.0",
+    "@commitlint/config-conventional": "^21.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.0"
+  },
+  "lint-staged": {
+    "frontend/src/**/*.{ts,tsx}": [
+      "yarn --cwd frontend eslint --fix",
+      "yarn --cwd frontend prettier --write"
+    ],
+    "backend/{src,test,prisma}/**/*.ts": [
+      "yarn --cwd backend eslint --fix",
+      "yarn --cwd backend prettier --write"
+    ],
+    "frontend/**/*.{css,json}": "yarn --cwd frontend prettier --write",
+    "backend/**/*.json": "yarn --cwd backend prettier --write",
+    "**/*.md": "yarn --cwd frontend prettier --write"
+  }
+}
