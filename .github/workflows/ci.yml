@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Every job that needs more than this raises it locally.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The backend is a separate app that may not be present on every branch. Its jobs
+  # key off this instead of being hardcoded, so a branch without it skips rather than
+  # fails. `hashFiles` cannot be used in a job-level `if`: it reads the workspace,
+  # which is empty before checkout.
+  detect:
+    name: Detect apps
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.check.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: check
+        run: |
+          test -f backend/package.json && echo "backend=true" >> "$GITHUB_OUTPUT" || echo "backend=false" >> "$GITHUB_OUTPUT"
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      # setup-node first, then corepack: enabling corepack against the runner's
+      # pre-installed Node writes shims that the new Node on PATH would not see.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - run: corepack enable
+
+      - id: yarn-cache
+        run: echo "dir=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: yarn-frontend-${{ hashFiles('frontend/yarn.lock') }}
+          restore-keys: yarn-frontend-
+
+      - run: yarn install --immutable
+      - run: yarn typecheck
+      - run: yarn lint
+      - run: yarn test
+      # VITE_* are required: src/app/config/env-schema.ts fails the build when they
+      # are missing, and .env.local is not committed. These are throwaway CI values —
+      # the artifact is proof the build works, not something to deploy.
+      - run: yarn build
+        env:
+          VITE_API_BASE_URL: http://localhost:1010/api/v1
+          VITE_APP_ENV: local
+
+  backend:
+    name: Backend
+    needs: detect
+    if: needs.detect.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: backend/.nvmrc
+      - run: corepack enable
+
+      - id: yarn-cache
+        run: echo "dir=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: yarn-backend-${{ hashFiles('backend/yarn.lock') }}
+          restore-keys: yarn-backend-
+
+      # The postinstall hook is `prisma generate`, which needs the schema — present
+      # here, unlike in the Dockerfile's dependency layer.
+      - run: yarn install --immutable
+      - run: yarn typecheck
+      - run: yarn lint
+      # `yarn test` only. `yarn test:e2e` needs a live DATABASE_URL and is left out
+      # until a CI database is decided on.
+      - run: yarn test
+      - run: yarn build
+
+  audit:
+    name: Dependency audit (non-blocking)
+    needs: detect
+    runs-on: ubuntu-latest
+    # Advisories land on their own schedule, not ours: this reports, it does not gate.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.nvmrc
+      - run: corepack enable
+      - name: Frontend
+        working-directory: frontend
+        run: yarn install --immutable --mode=skip-build && yarn npm audit --severity high
+      - name: Backend
+        if: needs.detect.outputs.backend == 'true'
+        working-directory: backend
+        run: yarn install --immutable --mode=skip-build && yarn npm audit --severity high
+
+  docker:
+    name: Docker images build
+    needs: detect
+    # Proving the Dockerfiles still compile is a pull-request check; the release
+    # workflow is what actually builds and pushes on main.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          push: false
+          # No --build-arg: the Dockerfile's local defaults are what makes this a
+          # pure "does it build" check.
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+      - name: Backend image
+        if: needs.detect.outputs.backend == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max

@@ -1,0 +1,535 @@
+@import 'tailwindcss';
+
+/*
+ * ProcessNow design system — global tokens.
+ * Source of truth: the ProcessNow Claude Design project (Brand, Login, Company Admin, Super Admin).
+ * Every colour, radius and shadow below is taken from those files; components use the
+ * utilities these tokens generate (bg-surface, text-fg-muted, rounded-12, shadow-popover, …),
+ * never raw hex values.
+ *
+ * Theme switches live on <html>:
+ *   data-theme="dark"                      dark palette
+ *   data-accent="amber" | "teal" | "indigo" accent preset (default: ink)
+ *   data-radius="sm" | "lg"                radius preset (default: md)
+ */
+
+/* ── Light palette (default) ─────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --pn-canvas: #eef0f2; /* workspace background */
+  --pn-canvas-hover: #e6e9ec; /* sidebar rows on the canvas */
+  --pn-surface: #ffffff; /* cards, panes, inputs */
+  --pn-surface-subtle: #fbfbfc; /* raised rows, identity chip, top bar */
+  --pn-surface-hover: #f7f8f9;
+  --pn-surface-muted: #f4f5f7; /* chips, icon wells, segmented controls */
+  --pn-surface-strong: #dfe2e6;
+
+  /* Lines */
+  --pn-line: #e8eaed; /* default border */
+  --pn-line-input: #e3e6e9; /* decorative field/card border — not a contrast carrier */
+  --pn-line-field: #8b93a1; /* interactive form-field border; 3.09:1 on --pn-surface (WCAG 1.4.11) */
+  --pn-line-subtle: #f1f2f4; /* dividers inside cards */
+  --pn-line-strong: #d4d8dd;
+
+  /* Skeleton shimmer */
+  --pn-skeleton: #f1f2f4;
+  --pn-skeleton-shine: #e8eaed;
+
+  /* Text */
+  --pn-fg: #1a1d21;
+  --pn-fg-secondary: #3c424c; /* graphite: body text, labels */
+  --pn-fg-muted: #5f6672;
+  --pn-fg-subtle: #666d78; /* slate: secondary text, idle icons — 5.22:1 on surface, 4.57:1 on canvas */
+  --pn-fg-faint: #c9cdd3; /* DECORATIVE ONLY: disabled controls and ornamental marks. Never for text
+                             a user has to read (hints, counts, captions) — that is --pn-fg-subtle. */
+  --pn-placeholder: #666d78; /* 5.22:1 on --pn-surface */
+
+  /* Primary action (ink by default; accent presets override) */
+  --pn-primary: #111417;
+  --pn-primary-hover: #23272c;
+  --pn-primary-fg: #ffffff;
+
+  /* Links + focus */
+  --pn-link: #17756c;
+  --pn-link-hover: #0f5a53;
+  --pn-focus: #17756c;
+  --pn-focus-ring: rgba(23, 117, 108, 0.11);
+
+  /* Status: success (teal) */
+  --pn-success: #14675c; /* 5.90:1 on --pn-success-soft */
+  --pn-success-solid: #2a9d8f;
+  --pn-success-bright: #4db6a5;
+  --pn-success-soft: #e2f4f0;
+  --pn-success-softer: #f5fbf9;
+  --pn-success-line: #e2f4f0;
+
+  /* Status: warning / in progress (amber) */
+  --pn-warning: #985311; /* 5.15:1 on --pn-warning-soft */
+  --pn-warning-solid: #f59052;
+  --pn-warning-bright: #f8b183;
+  --pn-warning-soft: #fdeedd;
+
+  /* Status: danger (red) */
+  --pn-danger: #e5484d;
+  --pn-danger-strong: #c73a3f;
+  --pn-danger-solid: #c73a3f; /* 5.10:1 with white — a filled destructive control */
+  --pn-danger-soft: #feecec;
+  --pn-danger-softer: #fef8f8;
+  --pn-danger-field: #fffbfb; /* invalid input background */
+  --pn-danger-line: #f5c6c8;
+
+  /* Status: info (blue) */
+  --pn-info: #1d58b8; /* 5.87:1 on --pn-info-soft */
+  --pn-info-solid: #3b82f6;
+  --pn-info-soft: #e8f1fe;
+
+  /* Status: violet */
+  --pn-violet: #5b3fd1;
+  --pn-violet-solid: #8b5cf6;
+  --pn-violet-soft: #efeaff;
+
+  /* Brand panel (login, banners) — always dark, in both themes */
+  --pn-brand-bg: #111417;
+  --pn-brand-fg: #ffffff;
+  --pn-brand-muted: #8b93a1;
+  --pn-brand-faint: #5f6672;
+  --pn-brand-line: #2b3138;
+
+  /* Elevation */
+  --pn-shadow-card: 0 1px 3px rgba(17, 20, 23, 0.04);
+  --pn-shadow-raise: 0 10px 24px rgba(17, 20, 23, 0.07); /* hovered tiles */
+  --pn-shadow-button: 0 10px 26px rgba(17, 20, 23, 0.2);
+  --pn-shadow-popover: 0 18px 48px rgba(17, 20, 23, 0.16);
+  --pn-shadow-dialog: 0 20px 52px rgba(17, 20, 23, 0.18);
+  --pn-shadow-modal: 0 24px 64px rgba(17, 20, 23, 0.24);
+  --pn-shadow-sheet: -24px 0 60px rgba(17, 20, 23, 0.18);
+
+  /* Radius scale (md preset). Keys are the design's px values so they read 1:1 with the file. */
+  --pn-radius-6: 6px;
+  --pn-radius-7: 7px;
+  --pn-radius-8: 8px;
+  --pn-radius-9: 9px;
+  --pn-radius-10: 10px;
+  --pn-radius-11: 11px;
+  --pn-radius-12: 12px;
+  --pn-radius-13: 13px;
+  --pn-radius-14: 14px;
+  --pn-radius-16: 16px;
+  --pn-radius-18: 18px;
+  --pn-radius-20: 20px;
+}
+
+/* ── Dark palette ────────────────────────────────────────── */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --pn-canvas: #0e1116;
+  --pn-canvas-hover: #1f252d;
+  --pn-surface: #15191f;
+  --pn-surface-subtle: #191e25;
+  --pn-surface-hover: #1c222a;
+  --pn-surface-muted: #1f252d;
+  --pn-surface-strong: #2b323b;
+
+  --pn-line: #282f39;
+  --pn-line-input: #282f39;
+  --pn-line-field: #606a77; /* 3.21:1 on --pn-surface */
+  --pn-line-subtle: #282f39;
+  --pn-line-strong: #3b4453;
+
+  --pn-skeleton: #1f252d;
+  --pn-skeleton-shine: #2b323b;
+
+  --pn-fg: #e6e9ee;
+  --pn-fg-secondary: #c8cfd8;
+  --pn-fg-muted: #a3abb6;
+  --pn-fg-subtle: #7d858f;
+  --pn-fg-faint: #5a626c;
+  --pn-placeholder: #858d98; /* 5.26:1 on --pn-surface (#6d7580 was 3.78:1) */
+
+  /* Status text keeps the light hues by default; on the dark soft backgrounds those read
+     at ~3:1, so the dark theme takes the lighter end of each ramp. */
+  --pn-success: var(--pn-success-bright); /* 5.76:1 on --pn-success-soft */
+  --pn-warning: var(--pn-warning-bright); /* 8.43:1 on --pn-warning-soft */
+  --pn-info: #6ea8f8; /* 6.36:1 on --pn-info-soft */
+  --pn-danger-strong: #f8787c; /* 6.17:1 on --pn-danger-soft */
+  /* Stays dark in dark mode: white sits on it, so it must not follow -strong upward. */
+  --pn-danger-solid: #b5353a; /* 5.97:1 with white */
+
+  --pn-primary: #3b4453;
+  --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, white);
+
+  --pn-link: #4db6a5;
+  --pn-link-hover: #6ecdbd;
+
+  --pn-success-soft: #12302c;
+  --pn-success-softer: #122b28;
+  --pn-success-line: #16332f;
+  --pn-warning-soft: #33220f;
+  --pn-danger-soft: #361718;
+  --pn-danger-softer: #2c1718;
+  --pn-danger-field: #2c1718;
+  --pn-danger-line: #3d1c1e;
+  --pn-info-soft: #152539;
+  --pn-violet-soft: #221c3a;
+
+  --pn-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.55);
+  --pn-shadow-raise: 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Accent presets ──────────────────────────────────────── */
+:root[data-accent='amber'] {
+  --pn-primary: #c9722f;
+  --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, black);
+  --pn-link: #c9722f;
+}
+:root[data-accent='teal'] {
+  --pn-primary: #17756c;
+  --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, black);
+}
+:root[data-accent='indigo'] {
+  --pn-primary: #5b3fd1;
+  --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, black);
+  --pn-link: #5b3fd1;
+}
+
+/* ── Radius presets ──────────────────────────────────────── */
+:root[data-radius='sm'] {
+  --pn-radius-6: 3px;
+  --pn-radius-7: 3px;
+  --pn-radius-8: 3px;
+  --pn-radius-9: 4px;
+  --pn-radius-10: 4px;
+  --pn-radius-11: 5px;
+  --pn-radius-12: 5px;
+  --pn-radius-13: 6px;
+  --pn-radius-14: 6px;
+  --pn-radius-16: 7px;
+  --pn-radius-18: 8px;
+  --pn-radius-20: 9px;
+}
+:root[data-radius='lg'] {
+  --pn-radius-6: 10px;
+  --pn-radius-7: 11px;
+  --pn-radius-8: 12px;
+  --pn-radius-9: 13px;
+  --pn-radius-10: 14px;
+  --pn-radius-11: 15px;
+  --pn-radius-12: 16px;
+  --pn-radius-13: 18px;
+  --pn-radius-14: 20px;
+  --pn-radius-16: 22px;
+  --pn-radius-18: 26px;
+  --pn-radius-20: 28px;
+}
+
+/* ── Tailwind theme: utilities read the variables above, so theme/preset switches apply everywhere ── */
+@theme inline {
+  --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-canvas: var(--pn-canvas);
+  --color-canvas-hover: var(--pn-canvas-hover);
+  --color-surface: var(--pn-surface);
+  --color-surface-subtle: var(--pn-surface-subtle);
+  --color-surface-hover: var(--pn-surface-hover);
+  --color-surface-muted: var(--pn-surface-muted);
+  --color-surface-strong: var(--pn-surface-strong);
+
+  --color-line: var(--pn-line);
+  --color-line-input: var(--pn-line-input);
+  --color-line-field: var(--pn-line-field);
+  --color-line-subtle: var(--pn-line-subtle);
+  --color-line-strong: var(--pn-line-strong);
+
+  --color-skeleton: var(--pn-skeleton);
+  --color-skeleton-shine: var(--pn-skeleton-shine);
+
+  --color-fg: var(--pn-fg);
+  --color-fg-secondary: var(--pn-fg-secondary);
+  --color-fg-muted: var(--pn-fg-muted);
+  --color-fg-subtle: var(--pn-fg-subtle);
+  --color-fg-faint: var(--pn-fg-faint);
+  --color-placeholder: var(--pn-placeholder);
+
+  --color-primary: var(--pn-primary);
+  --color-primary-hover: var(--pn-primary-hover);
+  --color-primary-fg: var(--pn-primary-fg);
+
+  --color-link: var(--pn-link);
+  --color-link-hover: var(--pn-link-hover);
+  --color-focus: var(--pn-focus);
+  --color-focus-ring: var(--pn-focus-ring);
+
+  --color-success: var(--pn-success);
+  --color-success-solid: var(--pn-success-solid);
+  --color-success-bright: var(--pn-success-bright);
+  --color-success-soft: var(--pn-success-soft);
+  --color-success-softer: var(--pn-success-softer);
+  --color-success-line: var(--pn-success-line);
+
+  --color-warning: var(--pn-warning);
+  --color-warning-solid: var(--pn-warning-solid);
+  --color-warning-bright: var(--pn-warning-bright);
+  --color-warning-soft: var(--pn-warning-soft);
+
+  --color-danger: var(--pn-danger);
+  --color-danger-strong: var(--pn-danger-strong);
+  --color-danger-solid: var(--pn-danger-solid);
+  --color-danger-soft: var(--pn-danger-soft);
+  --color-danger-softer: var(--pn-danger-softer);
+  --color-danger-field: var(--pn-danger-field);
+  --color-danger-line: var(--pn-danger-line);
+
+  --color-info: var(--pn-info);
+  --color-info-solid: var(--pn-info-solid);
+  --color-info-soft: var(--pn-info-soft);
+
+  --color-violet: var(--pn-violet);
+  --color-violet-solid: var(--pn-violet-solid);
+  --color-violet-soft: var(--pn-violet-soft);
+
+  --color-brand-bg: var(--pn-brand-bg);
+  --color-brand-fg: var(--pn-brand-fg);
+  --color-brand-muted: var(--pn-brand-muted);
+  --color-brand-faint: var(--pn-brand-faint);
+  --color-brand-line: var(--pn-brand-line);
+
+  --radius-6: var(--pn-radius-6);
+  --radius-7: var(--pn-radius-7);
+  --radius-8: var(--pn-radius-8);
+  --radius-9: var(--pn-radius-9);
+  --radius-10: var(--pn-radius-10);
+  --radius-11: var(--pn-radius-11);
+  --radius-12: var(--pn-radius-12);
+  --radius-13: var(--pn-radius-13);
+  --radius-14: var(--pn-radius-14);
+  --radius-16: var(--pn-radius-16);
+  --radius-18: var(--pn-radius-18);
+  --radius-20: var(--pn-radius-20);
+
+  --shadow-card: var(--pn-shadow-card);
+  --shadow-raise: var(--pn-shadow-raise);
+  --shadow-button: var(--pn-shadow-button);
+  --shadow-popover: var(--pn-shadow-popover);
+  --shadow-dialog: var(--pn-shadow-dialog);
+  --shadow-modal: var(--pn-shadow-modal);
+  --shadow-sheet: var(--pn-shadow-sheet);
+  --shadow-focus: 0 0 0 4px var(--pn-focus-ring);
+
+  /* Motion: 150–250ms, one easing curve for entrances */
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-mark-spin: spin 1.6s linear infinite;
+  --animate-rise: rise 0.4s var(--ease-out-expo);
+  --animate-fade-in: fade-in 0.55s ease;
+  --animate-pop: pop 0.22s var(--ease-out-expo);
+  --animate-shake: shake 0.4s;
+  --animate-modal-in: modal-in 0.24s var(--ease-out-expo);
+  --animate-toast-in: toast-in 0.24s var(--ease-out-expo);
+  --animate-sheet-in: sheet-in 0.28s var(--ease-out-expo);
+  --animate-palette-in: palette-in 0.2s var(--ease-out-expo);
+  --animate-drift: drift 15s ease-in-out infinite;
+  --animate-pulse-dot: flow 2.4s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-routebar: routebar 1.1s ease-in-out infinite;
+}
+
+/* ── Keyframes (from the design files) ───────────────────── */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-2px);
+  }
+  30%,
+  70% {
+    transform: translateX(3px);
+  }
+  50% {
+    transform: translateX(-3px);
+  }
+}
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateX(104%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -16px, 0);
+  }
+}
+@keyframes flow {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+}
+/* Compositor-only: the 460px gradient tile repeats, so translating by two tiles loops seamlessly. */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-460px);
+  }
+  100% {
+    transform: translateX(460px);
+  }
+}
+@keyframes routebar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+/* ── Base ────────────────────────────────────────────────── */
+@layer base {
+  html,
+  body {
+    background: var(--pn-canvas);
+    color: var(--pn-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Added by setTheme() for ~250ms so light↔dark cross-fades. Leaving it on permanently made
+     every hover and nav change recalculate styles across the whole tree. */
+  :root.theme-switching * {
+    transition:
+      background-color 0.18s ease,
+      border-color 0.18s ease,
+      color 0.18s ease;
+  }
+  a {
+    color: var(--pn-link);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--pn-link-hover);
+  }
+  ::placeholder {
+    color: var(--pn-placeholder);
+  }
+  /* Visible keyboard focus everywhere; fields draw their own ring. */
+  button:focus-visible,
+  a:focus-visible,
+  [role='button']:focus-visible {
+    outline: 2px solid var(--pn-focus);
+    outline-offset: 2px;
+  }
+  input:focus,
+  textarea:focus {
+    outline: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ── Components ──────────────────────────────────────────── */
+@layer components {
+  /* Skeleton shimmer. The moving layer is a sibling pseudo-element animated with transform,
+     so the sweep stays on the compositor — 30+ skeletons no longer repaint every frame. */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background: var(--pn-skeleton);
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -460px;
+    right: -460px;
+    background: linear-gradient(
+      90deg,
+      var(--pn-skeleton) 25%,
+      var(--pn-skeleton-shine) 50%,
+      var(--pn-skeleton) 75%
+    );
+    background-size: 460px 100%;
+    animation: var(--animate-shimmer);
+    /* Callers stagger rows with an inline animation-delay on the <span>; the animation now
+       lives on this pseudo-element, so pull the host's value through. */
+    animation-delay: inherit;
+    will-change: transform;
+  }
+}

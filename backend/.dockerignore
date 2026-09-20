@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+.git/
+.yarn/install-state.gz
+*.tsbuildinfo
+
+# Regenerated inside the image by `yarn prisma generate`, so a host-generated
+# client can never end up in the build.
+src/generated/
+
+.env
+.env.*
+!.env.example
+
+test/
+docs/
+README.md
+CLAUDE.md
+*.log
+.DS_Store
