@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LogOut, Moon, Sun } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, Moon, RotateCcw, Sun } from 'lucide-react';
 import { type RefObject, useState } from 'react';
 import { NavLink } from 'react-router';
 
@@ -8,6 +8,7 @@ import { cn } from '@lib/cn';
 import type { LayoutMode } from '@lib/layout-mode';
 import { accentAvatar } from '@constants/roles';
 import { useLogout } from '@hooks/use-logout';
+import { resetApp } from '@lib/app-reset';
 import { useTheme } from '@lib/theme';
 
 import { NotificationsEmpty } from './workspace-notifications';
@@ -117,6 +118,12 @@ export const WorkspaceMenuSheet = ({
       </div>
 
       <div className="mt-1.5 border-t border-line-subtle pt-1.5">
+        {/* For a phone stuck on an old version: one tap instead of browser settings. */}
+        <button type="button" onClick={() => void resetApp()} className={cn(ROW, 'w-full')}>
+          <RotateCcw aria-hidden="true" className="size-4.25 flex-none" strokeWidth={1.7} />
+          Reset app
+          <span className="ml-auto text-xs font-semibold text-fg-subtle">Reloads fresh</span>
+        </button>
         <button
           type="button"
           disabled={isLoggingOut}

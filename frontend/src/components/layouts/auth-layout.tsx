@@ -1,6 +1,7 @@
 import { ClipboardList, NotebookPen, ReceiptText } from 'lucide-react';
 import type { ReactNode } from 'react';
 
+import { ResetAppButton } from '@components/shared/reset-app-button';
 import { BrandLockup } from '@components/shared/brand-lockup';
 
 // What the product does today — no figures, so nothing here can go stale or mislead.
@@ -62,6 +63,10 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => (
 
       <BrandLockup className="mb-8.5 w-full max-w-[372px] min-[1041px]:hidden" />
       <div className="w-full max-w-[372px]">{children}</div>
+      <p className="mt-8 flex items-center gap-1 text-13 text-fg-subtle">
+        App not loading right?
+        <ResetAppButton className="-ml-1" />
+      </p>
     </main>
   </div>
 );
