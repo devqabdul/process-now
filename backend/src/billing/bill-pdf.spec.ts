@@ -1,7 +1,9 @@
 import {
+  amountInWords,
   type BillPdfInput,
   formatBillDate,
   renderBillPdf,
+  scriptRuns,
 } from './bill-pdf.js';
 
 const bill = (
@@ -65,6 +67,58 @@ describe('renderBillPdf', () => {
       }),
     );
     expect(pages(pdf)).toBe(1);
+  });
+
+  it('sets Gujarati, Devanagari and Latin runs in their own embedded Noto fonts', async () => {
+    expect(scriptRuns("ગુજરાતી वेंडर O'Brien ₹12")).toEqual([
+      { script: 'gujr', text: 'ગુજરાતી ' },
+      { script: 'deva', text: 'वेंडर ' },
+      { script: 'latin', text: "O'Brien ₹12" },
+    ]);
+    const pdf = (
+      await renderBillPdf(
+        bill(1, {
+          vendor: {
+            name: 'ગુજરાતી वेंडर 🙂',
+            phone: '9800022222',
+            address: null,
+          },
+          lines: [
+            {
+              service: 'क्षेत्र ફ્યુઝિંગ',
+              options: '',
+              qty: '1',
+              unit: 'piece',
+              rate: '1.00',
+              amount: '1.00',
+            },
+          ],
+        }),
+      )
+    ).toString('latin1');
+    for (const font of [
+      'NotoSansGujarati-Bold',
+      'NotoSansDevanagari-Bold',
+      'NotoSans-Regular',
+      'NotoSans-Bold',
+    ])
+      expect(pdf).toMatch(new RegExp(`/BaseFont /[A-Z]{6}\\+${font}\\b`));
+    expect(pdf).not.toContain('Helvetica');
+  });
+
+  it('spells the total in Indian numbering, rupees and paise', () => {
+    expect(amountInWords('123456.50')).toBe(
+      'One Lakh Twenty-Three Thousand Four Hundred Fifty-Six Rupees and Fifty Paise Only',
+    );
+    expect(amountInWords('10000001.01')).toBe(
+      'One Crore One Rupees and One Paisa Only',
+    );
+    expect(amountInWords('1.00')).toBe('One Rupee Only');
+    expect(amountInWords('0.75')).toBe('Seventy-Five Paise Only');
+    expect(amountInWords('0.00')).toBe('Zero Rupees Only');
+    expect(amountInWords('2345678901.00')).toBe(
+      'Two Hundred Thirty-Four Crore Fifty-Six Lakh Seventy-Eight Thousand Nine Hundred One Rupees Only',
+    );
   });
 
   it("dates the bill by the IST calendar day, in the app's format", () => {

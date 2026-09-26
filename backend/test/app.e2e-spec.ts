@@ -58,9 +58,9 @@ describe('global app setup (e2e)', () => {
     const moduleRef = await Test.createTestingModule({
       imports: [ProbeModule],
     }).compile();
-    app = moduleRef.createNestApplication();
+    app = moduleRef.createNestApplication({ bodyParser: false });
     setupApp(app);
-    await app.init();
+    await app.listen(0);
   });
 
   afterAll(async () => {
@@ -97,5 +97,19 @@ describe('global app setup (e2e)', () => {
       .expect(404);
     expect(res.body).toMatchObject({ status_code: 404 });
     expect(res.body).not.toHaveProperty('data');
+  });
+
+  it('returns 400 for malformed JSON and 413 past the body limit', async () => {
+    const bad = await request(app.getHttpServer())
+      .post(api('/probe'))
+      .set('content-type', 'application/json')
+      .send('{"name":')
+      .expect(400);
+    expect(bad.body.message).toBe('Malformed JSON body');
+    await request(app.getHttpServer())
+      .post(api('/probe'))
+      .set('content-type', 'application/json')
+      .send(JSON.stringify({ pad: 'x'.repeat(300 * 1024) }))
+      .expect(413);
   });
 });

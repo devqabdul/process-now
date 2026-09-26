@@ -1,4 +1,4 @@
-import { IsIn, IsUUID, Min } from 'class-validator';
+import { IsIn, IsUUID } from 'class-validator';
 import { ListQueryDto, ToArray } from '../../common/dto/list-query.dto.js';
 import { IsAmount, IsName, Optional } from '../../common/validators.js';
 
@@ -17,8 +17,7 @@ export class VoidBillDto {
 }
 
 export class RecordPaymentDto {
-  @IsAmount()
-  @Min(0.01)
+  @IsAmount(2, 0.01)
   amount: number;
 
   @IsIn(PAYMENT_METHODS)

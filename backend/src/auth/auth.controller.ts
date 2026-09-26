@@ -7,12 +7,11 @@ import {
   Post,
   Req,
   Res,
-  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { ApiTags } from '@nestjs/swagger';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import type { CookieOptions, Request, Response } from 'express';
 import { AUTH_COOKIE, SESSION_TTL_SECONDS } from '../common/auth.constants.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
@@ -50,7 +49,7 @@ export class AuthController {
   }
 
   @Public()
-  @UseGuards(ThrottlerGuard)
+  // The global ThrottlerGuard applies this; adding it here again counted every attempt twice.
   // Decorators are evaluated before DI exists, so this is the one place that reads
   // process.env directly. ConfigModule writes the validated value back to it at boot.
   @Throttle({
@@ -83,8 +82,9 @@ export class AuthController {
     ];
     if (token) {
       try {
-        const { userId } = await this.jwt.verifyAsync<AuthUser>(token);
-        await this.auth.revokeSessions(userId);
+        const { userId, tokenVersion } =
+          await this.jwt.verifyAsync<AuthUser>(token);
+        await this.auth.revokeSessions(userId, tokenVersion);
       } catch {
         // expired or forged: clearing the cookie is all that's left to do
       }

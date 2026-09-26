@@ -70,10 +70,13 @@ export class AuthService {
     return this.jwt.signAsync(payload);
   }
 
-  /** Invalidates every session of this user. Returns nothing: the cookie is cleared by the caller. */
-  async revokeSessions(userId: string) {
-    await this.prisma.user.update({
-      where: { id: userId },
+  /**
+   * Invalidates every session of this user, but only for a still-current token: a revoked
+   * or stolen old cookie must not be able to keep signing the user out everywhere.
+   */
+  async revokeSessions(userId: string, tokenVersion: number) {
+    await this.prisma.user.updateMany({
+      where: { id: userId, tokenVersion },
       data: { tokenVersion: { increment: 1 } },
     });
   }
@@ -93,6 +96,12 @@ export class AuthService {
     });
     if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
       throw fieldError('currentPassword', 'Wrong password');
+    }
+    if (newPassword === currentPassword) {
+      throw fieldError(
+        'newPassword',
+        'Choose a password different from the current one',
+      );
     }
     const updated = await this.prisma.user.update({
       where: { id: userId },

@@ -1,5 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, Matches, Min } from 'class-validator';
+import { IsIn, IsInt, Matches, Max, Min } from 'class-validator';
 import { fieldError, IsText, Optional } from '../validators.js';
 
 export const PAGE_SIZES = [15, 25, 50, 100] as const;
@@ -12,11 +12,12 @@ type Dir = 'asc' | 'desc';
  * implicit conversion is deliberately off.
  */
 export class ListQueryDto {
-  /** 1-based */
+  /** 1-based; capped so (page - 1) × pageSize stays a safe offset */
   @Optional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100_000)
   page = 1;
 
   @Optional()
@@ -72,7 +73,8 @@ export function listArgs<Where, OrderBy>(
       `Sort by one of: ${Object.keys(spec.sortable).join(', ')}`,
     );
   }
-  const term = query.q?.trim();
+  // Prisma's `contains` is a LIKE: without escaping, "%" or "_" matches every row.
+  const term = query.q?.trim().replace(/[\\%_]/g, '\\$&');
   return {
     where: { AND: [baseWhere], ...(term && { OR: spec.search(term) }) },
     orderBy: [...order(dir), { id: dir }],

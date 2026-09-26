@@ -18,11 +18,13 @@ export async function createApp(
 ) {
   const builder = Test.createTestingModule({ imports: [AppModule] });
   override?.(builder);
-  const app: INestApplication = (
-    await builder.compile()
-  ).createNestApplication();
+  const app: INestApplication = (await builder.compile()).createNestApplication(
+    { bodyParser: false },
+  );
   setupApp(app);
-  await app.init();
+  // A listening server: otherwise supertest binds a fresh port per request, and one
+  // freed by a parallel test file can be answered by the wrong app.
+  await app.listen(0);
   return app;
 }
 

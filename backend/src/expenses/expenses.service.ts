@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { assertBankAccount } from '../common/bank-account.js';
 import {
   listArgs,
@@ -94,7 +94,11 @@ export class ExpensesService {
       orderBy: { category: 'asc' },
       take: 100,
     });
-    return rows.map((r) => r.category);
+    // DISTINCT is case-sensitive, but the category filter isn't.
+    const seen = new Set<string>();
+    return rows
+      .map((r) => r.category)
+      .filter((c) => !seen.has(c.toLowerCase()) && seen.add(c.toLowerCase()));
   }
 
   async create(companyId: string, actor: string, dto: CreateExpenseDto) {
@@ -119,6 +123,7 @@ export class ExpensesService {
     id: string,
     dto: UpdateExpenseDto,
   ) {
+    await this.assertOpenAccount(companyId, id);
     if (dto.bankAccountId)
       await assertBankAccount(this.prisma, companyId, dto.bankAccountId);
     const expense = await this.prisma.expense.update({
@@ -135,10 +140,21 @@ export class ExpensesService {
 
   /** Removes an expense recorded in error; the account balance follows. */
   async remove(companyId: string, id: string) {
+    await this.assertOpenAccount(companyId, id);
     const expense = await this.prisma.expense.delete({
       where: { id, companyId },
       include: expenseInclude,
     });
     return toView(expense);
+  }
+
+  /** A closed account's history is frozen: its expenses can't be edited or removed. */
+  private async assertOpenAccount(companyId: string, id: string) {
+    const expense = await this.prisma.expense.findFirst({
+      where: { id, companyId },
+      select: { bankAccountId: true },
+    });
+    if (!expense) throw new NotFoundException('Not found');
+    await assertBankAccount(this.prisma, companyId, expense.bankAccountId);
   }
 }

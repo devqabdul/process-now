@@ -1,5 +1,5 @@
-import { IsString, Max, MaxLength } from 'class-validator';
-import { IsAmount, Optional } from '../../common/validators.js';
+import { Max } from 'class-validator';
+import { IsAmount, IsText, Optional } from '../../common/validators.js';
 
 export class UpsertDailyLogDto {
   /** Total machine operating hours that day */
@@ -13,7 +13,6 @@ export class UpsertDailyLogDto {
   electricityUnits: number;
 
   @Optional()
-  @IsString()
-  @MaxLength(500)
+  @IsText(500)
   notes?: string;
 }

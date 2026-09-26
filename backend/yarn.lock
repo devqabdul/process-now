@@ -5227,7 +5227,6 @@ __metadata:
     rxjs: "npm:^7.8.2"
     source-map-support: "npm:^0.5.21"
     supertest: "npm:^7.2.2"
-    to-words: "npm:^7.1.0"
     tsx: "npm:^4.23.13"
     typescript: "npm:6.0.3"
     typescript-eslint: "npm:^8.70.0"
@@ -5874,15 +5873,6 @@ __metadata:
   version: 3.1.1
   resolution: "tinyrainbow@npm:3.1.1"
   checksum: 10c0/f9d2743832c6191f753408f36224fe817620b8abcef572b2e570204c673a901d753ff84ca8e7b88f9c79e934295b3ffc6fcbc56a06f126e24e1ec6186dcad40d
-  languageName: node
-  linkType: hard
-
-"to-words@npm:^7.1.0":
-  version: 7.1.0
-  resolution: "to-words@npm:7.1.0"
-  bin:
-    to-words: dist/cjs/cli.js
-  checksum: 10c0/3bcb02c32334a5b5d44cd60e10935c23ed844ea35262d6529aa85d99c5253193392d039339781312beaa6484bc2737fe4b93deb30da361084d0208c4e1538288
   languageName: node
   linkType: hard
 

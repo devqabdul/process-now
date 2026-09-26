@@ -1,4 +1,4 @@
-import { IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { IsString, IsUUID, MaxLength } from 'class-validator';
 import { ListQueryDto, ToArray } from '../../common/dto/list-query.dto.js';
 import {
   IsAmount,
@@ -17,8 +17,7 @@ export class CreateExpenseDto {
   @IsName(60)
   category: string;
 
-  @IsAmount()
-  @Min(0.01)
+  @IsAmount(2, 0.01)
   amount: number;
 
   @IsDateOnly()
@@ -39,8 +38,7 @@ export class UpdateExpenseDto {
   category?: string;
 
   @Optional()
-  @IsAmount()
-  @Min(0.01)
+  @IsAmount(2, 0.01)
   amount?: number;
 
   @Optional()
