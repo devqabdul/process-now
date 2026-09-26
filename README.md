@@ -151,7 +151,7 @@ See [`docs/module-design.md`](docs/module-design.md) for the data model and the 
 | Area              | State                                                                                                                                                                                                                                                                                                  |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Sign in           | Email or mobile, then password; routes by role                                                                                                                                                                                                                                                         |
-| Company dashboard | Seven metrics, date switcher, pending-orders list, daily-log prompt                                                                                                                                                                                                                                    |
+| Company dashboard | Eight metrics, date switcher, pending-orders list, daily-log prompt                                                                                                                                                                                                                                    |
 | Super Admin       | Companies list with search; create company with its first admin                                                                                                                                                                                                                                        |
 | Workspace shell   | Scoped menu, ⌘K screen search, layout switch, dark mode, logout, mobile bottom tabs                                                                                                                                                                                                                    |
 | Auth              | Route middleware in `frontend/src/app/router/middleware.ts` — `guestOnly` on `/login`, `requireRole` on `/` and `/admin` (`requireAuth` is exported for routes that need any signed-in user). Identity from `useMe()`; a 401 interceptor plus `SessionListener` clear the cache and return to `/login` |
@@ -160,7 +160,7 @@ See [`docs/module-design.md`](docs/module-design.md) for the data model and the 
 
 **Not built:** the Orders, Bills, Vendors, Service types, Daily log and Settings **screens** — their menu items open a "coming soon" page, though the API endpoints behind them exist.
 
-**Placeholders:** the notifications tray and the company switcher in the workspace shell render nothing real, and logout doesn't yet call the API. Counts move; grep for what's left rather than trusting a number here:
+**Placeholders:** the notifications tray in the workspace shell renders nothing real (the header dropdown is now a vendor quick-jump), and logout doesn't yet call the API. Counts move; grep for what's left rather than trusting a number here:
 
 ```bash
 grep -rn 'TODO(api)\|TODO(auth)' frontend/src backend/src
