@@ -11,7 +11,7 @@ area.** [`README.md`](README.md) has setup, scripts, routes and the current buil
 
 ## The one thing to know first
 
-**The frontend calls the real API.** All nine domains under `src/api/process-backend/` go through
+**The frontend calls the real API.** All eleven domains under `src/api/process-backend/` go through
 `unwrap(getThing())` on the shared axios instance; the backend exists and its DB-backed e2e suite
 passes. The two remaining `*.fixtures.ts` files are **test data** — imported only by
 `companies-list-page.test.tsx` and `dashboard-page.test.tsx`. Don't invent a count, a badge or a
@@ -168,7 +168,7 @@ screens refetching against a dead cookie, and every 401 re-emitted `expired` in 
 src/
   app/           bootstrap — config (build-time env schema), providers, router, tailwind.css
   api/           process-backend/ — axios (+ 401 interceptor), envelope helpers, unwrap.ts,
-                 common.types.ts, and nine domains (auth, billing, companies, daily-logs,
+                 common.types.ts, and eleven domains (auth, bank-accounts, billing, companies, daily-logs, expenses,
                  dashboard, orders, service-types, settings, vendors), each
                  types + service + query hooks + index
   pages/         routed pages — auth/login/, dashboard/, admin/companies-list/,

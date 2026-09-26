@@ -72,6 +72,7 @@ const FIXTURES: Record<string, Dashboard> = {
     earnings: '58400.00',
     estimatedCost: '37050.00',
     estimatedProfit: '21350.00',
+    expenses: '1850.00',
     pendingOrders: PENDING_ORDERS,
     hasOrders: true,
   },
@@ -88,6 +89,7 @@ const FIXTURES: Record<string, Dashboard> = {
     earnings: '34250.00',
     estimatedCost: '21770.00',
     estimatedProfit: '12480.00',
+    expenses: '0.00',
     pendingOrders: PENDING_ORDERS.slice(1),
     hasOrders: true,
   },
@@ -102,6 +104,7 @@ const quietDay = (date: string): Dashboard => ({
   earnings: '0.00',
   estimatedCost: '0.00',
   estimatedProfit: '0.00',
+  expenses: '0.00',
   pendingOrders: PENDING_ORDERS,
   hasOrders: true,
 });

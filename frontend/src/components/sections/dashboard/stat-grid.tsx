@@ -1,4 +1,13 @@
-import { IndianRupee, Layers, Package, Sparkles, Timer, TrendingUp, Zap } from 'lucide-react';
+import {
+  IndianRupee,
+  Layers,
+  Package,
+  Sparkles,
+  Timer,
+  TrendingUp,
+  WalletMinimal,
+  Zap,
+} from 'lucide-react';
 
 import type { Dashboard } from '@api/process-backend/dashboard';
 import { StatTile, StatTileSkeleton } from '@components/shared/stat-tile';
@@ -7,7 +16,7 @@ import { formatQuantity } from '@utils/format/quantity';
 
 const GRID = 'grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4';
 const NONE = '—';
-const TILE_COUNT = 7;
+const TILE_COUNT = 8;
 
 interface StatGridProps {
   dashboard: Dashboard | undefined;
@@ -78,6 +87,13 @@ export const StatGrid = ({ dashboard }: StatGridProps) => {
         icon={Sparkles}
         iconClassName="bg-success-solid"
         sub="Estimated from your configured costs"
+      />
+      <StatTile
+        label="Expenses"
+        value={formatMoney(dashboard.expenses)}
+        icon={WalletMinimal}
+        iconClassName="bg-danger-solid"
+        sub="Paid out on this day"
       />
     </div>
   );

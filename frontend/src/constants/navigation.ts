@@ -2,12 +2,14 @@ import {
   Building,
   ClipboardList,
   House,
+  Landmark,
   type LucideIcon,
   NotebookPen,
   Plus,
   ReceiptText,
   Settings,
   Store,
+  WalletMinimal,
   Wrench,
 } from 'lucide-react';
 
@@ -48,6 +50,8 @@ export const COMPANY_ADMIN_NAV: NavGroup[] = [
       { label: 'Bills', to: '/bills', icon: ReceiptText, mobile: 'tab' },
       { label: 'Vendors', to: '/vendors', icon: Store },
       { label: 'Service types', to: '/service-types', icon: Wrench },
+      { label: 'Bank', to: '/bank', icon: Landmark },
+      { label: 'Expenses', to: '/expenses', icon: WalletMinimal },
       { label: 'Daily log', to: '/daily-log', icon: NotebookPen },
       { label: 'Settings', to: '/settings', icon: Settings },
     ],

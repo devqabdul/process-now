@@ -82,6 +82,21 @@ const VendorsListPage = lazy(() =>
     default: m.VendorsListPage,
   })),
 );
+const BankAccountsListPage = lazy(() =>
+  import('@pages/bank/bank-accounts-list/bank-accounts-list-page').then((m) => ({
+    default: m.BankAccountsListPage,
+  })),
+);
+const BankStatementPage = lazy(() =>
+  import('@pages/bank/bank-statement/bank-statement-page').then((m) => ({
+    default: m.BankStatementPage,
+  })),
+);
+const ExpensesListPage = lazy(() =>
+  import('@pages/expenses/expenses-list/expenses-list-page').then((m) => ({
+    default: m.ExpensesListPage,
+  })),
+);
 const ComingSoonPage = lazy(() =>
   import('@pages/coming-soon/coming-soon-page').then((m) => ({ default: m.ComingSoonPage })),
 );
@@ -133,6 +148,9 @@ export const routes: RouteObject[] = [
             Component: ServiceTypesListPage,
             handle: { screen: 'Service types' },
           },
+          { path: 'bank', Component: BankAccountsListPage, handle: { screen: 'Bank' } },
+          { path: 'bank/:id', Component: BankStatementPage, handle: { screen: 'Statement' } },
+          { path: 'expenses', Component: ExpensesListPage, handle: { screen: 'Expenses' } },
           { path: 'daily-log', ...comingSoon('Daily log') },
           { path: 'settings', ...comingSoon('Settings') },
         ],

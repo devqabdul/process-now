@@ -9,7 +9,7 @@
 [![Tailwind](https://img.shields.io/badge/Tailwind-v4-38BDF8.svg?logo=tailwindcss)](https://tailwindcss.com)
 [![Private](https://img.shields.io/badge/access-private-lightgrey.svg)](#)
 
-> **Status:** the frontend calls the real API. All nine domains under `src/api/process-backend/` fetch through the shared axios client, the backend exists and its DB-backed e2e suite passes, and the route guards are in place. What is still a placeholder carries a `TODO(api)` comment — `grep -rn "TODO(api)" src/` lists them.
+> **Status:** the frontend calls the real API. All eleven domains under `src/api/process-backend/` fetch through the shared axios client, the backend exists and its DB-backed e2e suite passes, and the route guards are in place. What is still a placeholder carries a `TODO(api)` comment — `grep -rn "TODO(api)" src/` lists them.
 
 ---
 
@@ -303,23 +303,25 @@ navigation rather than rendering, so no fallback would ever paint. The comment a
 
 ### Routes
 
-| Path                                                                                        | Workspace     | Screen                          |
-| ------------------------------------------------------------------------------------------- | ------------- | ------------------------------- |
-| `/login`                                                                                    | —             | Sign in (identify → password)   |
-| `/`                                                                                         | Company Admin | Dashboard                       |
-| `/orders`, `/orders/new`, `/bills`, `/vendors`, `/service-types`, `/daily-log`, `/settings` | Company Admin | Coming soon                     |
-| `/admin`                                                                                    | Super Admin   | Redirects to `/admin/companies` |
-| `/admin/companies`                                                                          | Super Admin   | Companies list                  |
-| `/admin/companies/new`                                                                      | Super Admin   | Create company                  |
-| anything else                                                                               | —             | Not found                       |
+| Path                                                                                        | Workspace     | Screen                           |
+| ------------------------------------------------------------------------------------------- | ------------- | -------------------------------- |
+| `/login`                                                                                    | —             | Sign in (identify → password)    |
+| `/`                                                                                         | Company Admin | Dashboard                        |
+| `/orders`, `/orders/new`, `/bills`, `/vendors`, `/service-types`, `/daily-log`, `/settings` | Company Admin | Coming soon                      |
+| `/bank`, `/bank/:id`                                                                        | Company Admin | Bank accounts, account statement |
+| `/expenses`                                                                                 | Company Admin | Expenses                         |
+| `/admin`                                                                                    | Super Admin   | Redirects to `/admin/companies`  |
+| `/admin/companies`                                                                          | Super Admin   | Companies list                   |
+| `/admin/companies/new`                                                                      | Super Admin   | Create company                   |
+| anything else                                                                               | —             | Not found                        |
 
 Menus are data: `COMPANY_ADMIN_NAV` and `SUPER_ADMIN_NAV` in `src/constants/navigation.ts` drive
 the sidebar, the top bar, the phone tab bar and the ⌘K palette from one list.
 
 ### The API domains
 
-Nine domains live under `src/api/process-backend/`: `auth`, `billing`, `companies`, `daily-logs`,
-`dashboard`, `orders`, `service-types`, `settings` and `vendors`. Each is four files — wire types,
+Eleven domains live under `src/api/process-backend/`: `auth`, `bank-accounts`, `billing`, `companies`,
+`daily-logs`, `dashboard`, `expenses`, `orders`, `service-types`, `settings` and `vendors`. Each is four files — wire types,
 a thin service, a query-key factory with its read hooks, and an `index.ts` barrel. Six of them have
 no screen yet; their folders exist so the screen that needs one finds its hooks already written.
 
@@ -412,7 +414,7 @@ icon. **App shell only** — API calls are network-only and there is no offline 
 | Module                                                     | Scope                                                                                                                                                                    | State                                                       |
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
 | **Auth**                                                   | Two-step sign-in: identifier (email or 10-digit mobile, detected live) → password. Routes by role via `ROLE_META`. Route guards, `/auth/me` session and 401 handling     | Built against the API, sign-out included                    |
-| **Dashboard**                                              | Seven stat tiles for a chosen day, date switcher capped at today, daily-log prompt, pending-orders preview                                                               | Built against the API                                       |
+| **Dashboard**                                              | Eight stat tiles for a chosen day, date switcher capped at today, daily-log prompt, pending-orders preview                                                               | Built against the API                                       |
 | **Companies**                                              | Super Admin: list with search and a responsive table/cards swap; create a company plus its first admin, with duplicate-name / phone / email conflicts surfaced per field | Built against the API                                       |
 | **Workspace shell**                                        | Sidebar or top-bar desktop layouts, phone top bar + bottom tabs + account sheet, ⌘K palette, notifications, theme toggle, logout                                         | Built; notifications and company switching are placeholders |
 | Orders, Bills, Vendors, Service types, Daily log, Settings | In the menu, routed to `ComingSoonPage`                                                                                                                                  | Not built                                                   |

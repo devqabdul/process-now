@@ -12,6 +12,9 @@ export interface Payment {
   amount: string;
   method: PaymentMethod;
   paidAt: string;
+  // The account the money landed in; null when none was chosen.
+  bankAccountId: string | null;
+  bankAccount: { id: string; name: string } | null;
 }
 
 interface BillAmounts {
@@ -50,4 +53,6 @@ export interface RecordPaymentPayload {
   // Rejected with a field error if it exceeds what is due.
   amount: number;
   method: PaymentMethod;
+  // Must be an active account of this company.
+  bankAccountId?: string;
 }
