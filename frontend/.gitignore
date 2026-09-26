@@ -15,3 +15,6 @@ dev-dist/
 
 # Bundle analyzer report
 build/stats.html
+
+# Wrangler local state and dev cache
+.wrangler/

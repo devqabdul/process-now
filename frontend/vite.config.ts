@@ -34,6 +34,8 @@ const alias = (dir: string) => fileURLToPath(new URL(`./src/${dir}`, import.meta
 export default defineConfig(({ mode }) => {
   // Fail the dev server / build on a bad env instead of shipping it.
   if (mode !== 'test') parseEnv(loadEnv(mode, process.cwd(), 'VITE_'));
+  // Dev only: serve a remote API from this origin, so its SameSite=Lax cookie is first-party.
+  const apiProxy = loadEnv(mode, process.cwd(), 'API_PROXY_').API_PROXY_TARGET;
 
   return {
     plugins: [
@@ -72,18 +74,29 @@ export default defineConfig(({ mode }) => {
             { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
             { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
             // Android crops to a circle: this one keeps the mark inside the safe zone.
-            { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+            {
+              src: 'pwa-maskable-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
           ],
         },
       }),
     ],
-    server: { port: 9090, strictPort: true, open: '/login' },
+    server: {
+      port: 9090,
+      strictPort: true,
+      open: '/login',
+      proxy: apiProxy ? { '/api': { target: apiProxy, changeOrigin: true } } : undefined,
+    },
     preview: { port: 9090, strictPort: true },
     build: {
       outDir: 'build',
       // Never inline fonts as data: URIs — they'd need `font-src data:` in the CSP and
       // would re-download with every bundle change instead of caching on their own.
-      assetsInlineLimit: (filePath: string) => (/\.(woff2?|ttf|otf|eot)$/i.test(filePath) ? false : undefined),
+      assetsInlineLimit: (filePath: string) =>
+        /\.(woff2?|ttf|otf|eot)$/i.test(filePath) ? false : undefined,
       rollupOptions: {
         // Pages are already split per route (lazy routes). This keeps the libraries every
         // page needs in one long-lived chunk, so app changes don't re-download them.
