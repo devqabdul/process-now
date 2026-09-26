@@ -1,5 +1,5 @@
-import { IsUUID, Min } from 'class-validator';
-import { DateRangeQueryDto } from '../../common/dto/date-range-query.dto.js';
+import { IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { ListQueryDto, ToArray } from '../../common/dto/list-query.dto.js';
 import {
   IsAmount,
   IsDateOnly,
@@ -52,12 +52,29 @@ export class UpdateExpenseDto {
   notes?: string;
 }
 
-export class ListExpensesQueryDto extends DateRangeQueryDto {
+/**
+ * `q` matches category or notes; sort by `spentOn` (default `-spentOn`), `amount` or `category`.
+ * from/to are written out because a class extends only one base; see DateRangeQueryDto.
+ */
+export class ListExpensesQueryDto extends ListQueryDto {
+  /** Defaults to 29 days before `to` */
+  @Optional()
+  @IsDateOnly()
+  from?: string;
+
+  /** Defaults to today */
+  @Optional()
+  @IsDateOnly()
+  to?: string;
+
   @Optional()
   @IsUUID()
   bankAccountId?: string;
 
+  /** Repeat to match any of several categories (case-insensitive) */
   @Optional()
-  @IsName(60)
-  category?: string;
+  @ToArray()
+  @IsString({ each: true })
+  @MaxLength(60, { each: true })
+  category?: string[];
 }

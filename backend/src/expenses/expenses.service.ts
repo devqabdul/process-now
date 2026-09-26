@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Decimal } from '@prisma/client/runtime/client';
 import { assertBankAccount } from '../common/bank-account.js';
+import {
+  listArgs,
+  paged,
+  type ListSpec,
+} from '../common/dto/list-query.dto.js';
 import { fromDateColumn, today, toDateColumn } from '../common/dates.js';
 import { money } from '../common/money.js';
 import { fieldError, resolveRange } from '../common/validators.js';
@@ -24,6 +28,22 @@ const toView = (e: ExpenseRow) => ({
   spentOn: fromDateColumn(e.spentOn),
 });
 
+const expenseList: ListSpec<
+  Prisma.ExpenseWhereInput,
+  Prisma.ExpenseOrderByWithRelationInput
+> = {
+  search: (term) => [
+    { category: { contains: term, mode: 'insensitive' } },
+    { notes: { contains: term, mode: 'insensitive' } },
+  ],
+  sortable: {
+    spentOn: (dir) => [{ spentOn: dir }],
+    amount: (dir) => [{ amount: dir }],
+    category: (dir) => [{ category: dir }],
+  },
+  defaultSort: '-spentOn',
+};
+
 const spentOnColumn = (date: string) => {
   if (date > today())
     throw fieldError('spentOn', "Can't record a future expense");
@@ -34,26 +54,34 @@ const spentOnColumn = (date: string) => {
 export class ExpensesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /** One page of expenses in the window; `sum` covers every matching row, not just the page. */
   async findAll(companyId: string, query: ListExpensesQueryDto) {
     const { from, to } = resolveRange(query.from, query.to);
-    const expenses = await this.prisma.expense.findMany({
-      where: {
+    const args = listArgs(
+      {
         companyId,
         spentOn: { gte: toDateColumn(from), lte: toDateColumn(to) },
         bankAccountId: query.bankAccountId,
-        category: query.category && {
-          equals: query.category,
-          mode: 'insensitive',
-        },
+        ...(query.category && {
+          OR: query.category.map((category) => ({
+            category: { equals: category, mode: 'insensitive' as const },
+          })),
+        }),
       },
-      include: expenseInclude,
-      orderBy: [{ spentOn: 'desc' }, { id: 'desc' }],
-    });
+      query,
+      expenseList,
+    );
+    const [expenses, total, sum] = await Promise.all([
+      this.prisma.expense.findMany({ ...args, include: expenseInclude }),
+      this.prisma.expense.count({ where: args.where }),
+      this.prisma.expense.aggregate({
+        where: args.where,
+        _sum: { amount: true },
+      }),
+    ]);
     return {
-      from,
-      to,
-      total: money(expenses.reduce((s, e) => s.plus(e.amount), new Decimal(0))),
-      expenses: expenses.map(toView),
+      ...paged(expenses.map(toView), total, query),
+      sum: money(sum._sum.amount ?? 0),
     };
   }
 

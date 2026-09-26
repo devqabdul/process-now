@@ -42,7 +42,7 @@ statements) and a `DIRECT_URL` on 5432 is added for the CLI. Hosting is undecide
 - **Postgres is snake_case, code is camelCase.** `@map` on every multi-word field, `@@map` on every
   model. Nothing translates names by hand.
 - Ids are `String @id @default(uuid(7)) @db.Uuid` — uuid v7 sorts by creation time, so `orderBy: id`
-  after a timestamp is a stable tiebreaker for cursor paging.
+  after a timestamp is a stable tiebreaker for paging.
 - Every business table has `companyId String @map("company_id") @db.Uuid` with a relation and an index.
   The one exception is `order_items`, which hangs off its order and is scoped through it
   (`where: { order: { companyId } }`).

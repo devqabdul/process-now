@@ -23,7 +23,7 @@ one module lives in `src/common/` (`pricing.ts`, `dates.ts`, `option-groups.ts`)
 1. **Schema first.** Add the model to `prisma/schema.prisma` with `companyId`, `@@map`, `@map` and an
    index on `companyId`. `yarn prisma migrate dev --name <x>`. See [`database.md`](./database.md).
 2. **DTOs.** class-validator decorators plus the shared helpers from `src/common/validators.ts`
-   (`@IsName()`, `@IsPhone()`, `@IsAmount()`, `@Optional()`). Query DTOs extend `PageQueryDto` when the
+   (`@IsName()`, `@IsPhone()`, `@IsAmount()`, `@Optional()`). Query DTOs extend `ListQueryDto` when the
    route lists rows. See [`api-layer.md`](./api-layer.md) and [`types.md`](./types.md).
 3. **Service.** `@Injectable()`, constructor-inject `PrismaService`. **`companyId` is the first
    argument** of every method. Every query filters by it. See [`multi-tenancy.md`](./multi-tenancy.md).

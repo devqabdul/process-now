@@ -6,7 +6,13 @@ import {
 import bcrypt from 'bcrypt';
 import { DEFAULT_SETTINGS } from '../common/company-settings.js';
 import { fieldError } from '../common/validators.js';
-import { paginate, type PageQueryDto } from '../common/dto/page-query.dto.js';
+import {
+  listArgs,
+  paged,
+  type ListQueryDto,
+  type ListSpec,
+} from '../common/dto/list-query.dto.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateCompanyDto,
@@ -33,17 +39,47 @@ const companySelect = {
   },
 } as const;
 
+const companyList: ListSpec<
+  Prisma.CompanyWhereInput,
+  Prisma.CompanyOrderByWithRelationInput
+> = {
+  search: (term) => {
+    const digits = term.replace(/\D/g, '');
+    return [
+      { name: { contains: term, mode: 'insensitive' } },
+      { gstNo: { contains: term, mode: 'insensitive' } },
+      {
+        users: {
+          some: {
+            role: 'company_admin',
+            OR: [
+              { email: { contains: term, mode: 'insensitive' } },
+              ...(digits ? [{ phone: { contains: digits } }] : []),
+            ],
+          },
+        },
+      },
+    ];
+  },
+  sortable: {
+    createdAt: (dir) => [{ createdAt: dir }],
+    name: (dir) => [{ name: dir }],
+  },
+  defaultSort: '-createdAt',
+};
+
 @Injectable()
 export class CompaniesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query: PageQueryDto) {
-    const companies = await this.prisma.company.findMany({
-      select: companySelect,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      ...paginate(query),
-    });
-    return companies.map(toView);
+  /** The super admin's list, so the base scope is every company. */
+  async findAll(query: ListQueryDto) {
+    const args = listArgs({}, query, companyList);
+    const [companies, total] = await Promise.all([
+      this.prisma.company.findMany({ ...args, select: companySelect }),
+      this.prisma.company.count({ where: args.where }),
+    ]);
+    return paged(companies.map(toView), total, query);
   }
 
   async create(actor: string, { admin, ...fields }: CreateCompanyDto) {

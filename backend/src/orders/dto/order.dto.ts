@@ -10,7 +10,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { PageQueryDto } from '../../common/dto/page-query.dto.js';
+import { ListQueryDto, ToArray } from '../../common/dto/list-query.dto.js';
 import { IsAmount, IsName, Optional } from '../../common/validators.js';
 
 export class SelectedOptionDto {
@@ -78,19 +78,20 @@ export class CancelOrderDto {
   reason: string;
 }
 
-export class ListOrdersQueryDto extends PageQueryDto {
-  /** Cancelled orders are hidden unless asked for */
+/**
+ * `q` matches vendor name, notes or the order number ("FN-0012", "12");
+ * sort by `receivedAt` (default `-receivedAt`), `orderNo` or `vendor`.
+ */
+export class ListOrdersQueryDto extends ListQueryDto {
+  /** Repeat to match any of several; cancelled orders are hidden unless asked for */
   @Optional()
-  @IsIn(['received', 'processing', 'returned', 'cancelled'])
-  status?: 'received' | 'processing' | 'returned' | 'cancelled';
+  @ToArray()
+  @IsIn(['received', 'processing', 'returned', 'cancelled'], { each: true })
+  status?: ('received' | 'processing' | 'returned' | 'cancelled')[];
 
+  /** Repeat to match any of several vendors */
   @Optional()
-  @IsUUID()
-  vendorId?: string;
-
-  /** Vendor name, or an order number */
-  @Optional()
-  @IsString()
-  @MaxLength(100)
-  q?: string;
+  @ToArray()
+  @IsUUID('all', { each: true })
+  vendorId?: string[];
 }

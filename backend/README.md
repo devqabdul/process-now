@@ -67,7 +67,7 @@ Vendors bring material and receive goods and a bill, but **have no login**. Staf
 - Bills with computed due/paid status, payments under a row lock, and voiding
 - A daily log of machine hours and electricity units, one entry per company per day
 - A dashboard aggregating one IST business day: pending orders, amount to collect, items processed per unit, machine hours, electricity cost, earnings, estimated cost and profit
-- One response envelope, one error shape, cursor paging, and Swagger outside production
+- One response envelope, one error shape, numbered paging with totals, and Swagger outside production
 
 ---
 
@@ -139,6 +139,8 @@ yarn start:dev                    # http://localhost:1010, docs at /docs
 
 Seeded logins (password = `SEED_PASSWORD`): super admin `9000000000`, FuseNow admin `9000000001`, CrushNow admin `9000000002`.
 
+For a company that looks lived-in, `yarn seed:demo` adds **Shree Ganesh Fusing Works** (admin Rakesh Patel, `9876500001` / `rakesh@shreeganesh.demo`, password = `SEED_PASSWORD`): two months of orders in every state, GST bills, part and full payments, a voided bill, three accounts, expenses and daily logs — about ₹5 lakh billed a month, priced with the API's own pricing functions. It leaves an existing demo company alone; `yarn seed:demo --reset` deletes it and seeds it again. Today's daily log is left empty on purpose, so the dashboard's prompt shows.
+
 > Steps 4 and 5 have not been run against a real database yet. Expect to fix things the first time.
 
 ---
@@ -190,6 +192,7 @@ The **transaction pooler (port 6543) is only for serverless hosting.** If the AP
 | `yarn migrate:deploy`                       | `prisma migrate deploy` — the release step                                   |
 | `yarn prisma migrate dev --name <x>`        | New migration after a schema change                                          |
 | `yarn prisma db seed`                       | Run `prisma/seed.ts`                                                         |
+| `yarn seed:demo [--reset]`                  | Run `prisma/seed-demo.ts`: the demo company with two months of history       |
 
 There is no `yarn verify` here; the root `yarn verify` covers the frontend only. Run `yarn typecheck && yarn lint && yarn test` before pushing backend changes.
 
@@ -219,7 +222,7 @@ backend/
       decorators/            current-user.decorator.ts (@CurrentUser, @CompanyId), roles, public
       interceptors/          envelope.interceptor.ts
       filters/               http-exception.filter.ts — incl. the Prisma error mapping
-      dto/page-query.dto.ts  cursor paging
+      dto/list-query.dto.ts  shared paging, search and sort
       types/auth-user.ts
       pricing.ts  dates.ts  identifier.ts  company-settings.ts  option-groups.ts  validators.ts
     auth/  companies/  settings/  vendors/  service-types/
@@ -331,7 +334,7 @@ The pricing formula, the snapshot rule, forward-only status, numbering, GST and 
 
 ### Endpoints
 
-Everything is served under **`/api/v1`**; the two health checks are not, so platform probes can find them. List endpoints take `limit` (default 50, max 100) and `cursor` (the id of the last row of the previous page). Company routes require the `company_admin` role and are scoped to that admin's company.
+Everything is served under **`/api/v1`**; the two health checks are not, so platform probes can find them. List endpoints take `page` (default 1) and `pageSize` (15, 25, 50 or 100; default 15) and return `{ items, total, page, pageSize }`. Company routes require the `company_admin` role and are scoped to that admin's company.
 
 | Method      | Path                  | Role          | Notes                                                                                 |
 | ----------- | --------------------- | ------------- | ------------------------------------------------------------------------------------- |

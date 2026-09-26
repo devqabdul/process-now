@@ -8,9 +8,16 @@ import { BillingService } from '../billing/billing.service.js';
 import { fieldError } from '../common/validators.js';
 import type { OrderStatus, Prisma } from '../generated/prisma/client.js';
 import { companyPrefix } from '../common/company-number.js';
-import { formatDocumentNo } from '../common/document-number.js';
+import {
+  formatDocumentNo,
+  parseDocumentNo,
+} from '../common/document-number.js';
 import { fitsInMoneyColumn, itemMoney, money } from '../common/money.js';
-import { paginate } from '../common/dto/page-query.dto.js';
+import {
+  listArgs,
+  paged,
+  type ListSpec,
+} from '../common/dto/list-query.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ServiceTypesService } from '../service-types/service-types.service.js';
 import type {
@@ -72,6 +79,26 @@ const toView = <
   }),
 });
 
+const orderList: ListSpec<
+  Prisma.OrderWhereInput,
+  Prisma.OrderOrderByWithRelationInput
+> = {
+  search: (term) => {
+    const orderNo = parseDocumentNo(term);
+    return [
+      { vendor: { name: { contains: term, mode: 'insensitive' } } },
+      { notes: { contains: term, mode: 'insensitive' } },
+      ...(orderNo !== undefined ? [{ orderNo }] : []),
+    ];
+  },
+  sortable: {
+    receivedAt: (dir) => [{ receivedAt: dir }],
+    orderNo: (dir) => [{ orderNo: dir }],
+    vendor: (dir) => [{ vendor: { name: dir } }],
+  },
+  defaultSort: '-receivedAt',
+};
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -81,36 +108,26 @@ export class OrdersService {
   ) {}
 
   async findAll(companyId: string, query: ListOrdersQueryDto) {
-    const { status, vendorId, q } = query;
-    const term = q?.trim();
-    // "FN-0012", "0012" and "12" are all the same order; anything else stays a
-    // vendor-name search. order_no is int4, so an oversized number is not a miss
-    // but a Postgres range error, and must not reach the query.
-    const digits = term?.replace(/^[A-Za-z]{2,6}-/, '') ?? '';
-    const orderNo =
-      /^\d{1,10}$/.test(digits) && Number(digits) <= 2_147_483_647
-        ? Number(digits)
-        : undefined;
-    const [prefix, orders] = await Promise.all([
+    const { status, vendorId } = query;
+    const args = listArgs(
+      {
+        companyId,
+        status: status ? { in: status } : { not: 'cancelled' },
+        vendorId: vendorId && { in: vendorId },
+      },
+      query,
+      orderList,
+    );
+    const [prefix, orders, total] = await Promise.all([
       companyPrefix(this.prisma, companyId),
-      this.prisma.order.findMany({
-        where: {
-          companyId,
-          status: status ?? { not: 'cancelled' },
-          vendorId,
-          ...(term && {
-            OR: [
-              { vendor: { name: { contains: term, mode: 'insensitive' } } },
-              ...(orderNo !== undefined ? [{ orderNo }] : []),
-            ],
-          }),
-        },
-        include: orderInclude,
-        orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
-        ...paginate(query),
-      }),
+      this.prisma.order.findMany({ ...args, include: orderInclude }),
+      this.prisma.order.count({ where: args.where }),
     ]);
-    return orders.map((order) => toView(order, prefix));
+    return paged(
+      orders.map((order) => toView(order, prefix)),
+      total,
+      query,
+    );
   }
 
   async findOne(companyId: string, id: string) {

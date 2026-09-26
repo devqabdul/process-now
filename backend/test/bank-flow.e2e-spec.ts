@@ -17,6 +17,7 @@ describe.skipIf(!HAS_DB)('bank accounts and expenses (e2e, DB)', () => {
   let prisma: PrismaService;
   let agent: TestAgent;
   let billId: string;
+  let vendorId: string;
   const ids: string[] = [];
 
   beforeAll(async () => {
@@ -27,6 +28,7 @@ describe.skipIf(!HAS_DB)('bank accounts and expenses (e2e, DB)', () => {
     const vendor = await prisma.vendor.create({
       data: { companyId: company.id, name: 'Ravi', phone: '9333333333' },
     });
+    vendorId = vendor.id;
     const st = await prisma.serviceType.create({
       data: {
         companyId: company.id,
@@ -142,8 +144,45 @@ describe.skipIf(!HAS_DB)('bank accounts and expenses (e2e, DB)', () => {
       statement.entries.map((e: { kind: string }) => e.kind).sort(),
     ).toEqual(['in', 'out']);
 
+    // The bill as a PDF, drawn on request with the payments just made.
+    const pdf = (await agent.get(api(`/bills/${billId}/pdf`)).expect(200)).body
+      .data;
+    expect(pdf).toMatchObject({
+      fileName: 'bill-1.pdf',
+      contentType: 'application/pdf',
+      vendor: { name: 'Ravi', phone: '9333333333' },
+    });
+    expect(Buffer.from(pdf.base64, 'base64').subarray(0, 5).toString()).toBe(
+      '%PDF-',
+    );
+
+    // The vendor's side of the same money: billed 800, paid 500 + 100.
+    const vendorStatement = (
+      await agent.get(api(`/vendors/${vendorId}/statement`)).expect(200)
+    ).body.data;
+    expect(vendorStatement).toMatchObject({
+      openingDue: '0.00',
+      billed: '800.00',
+      received: '600.00',
+      closingDue: '200.00',
+      ordersIn: 1,
+    });
+    // Newest first, so the latest line carries what is owed now.
+    expect(vendorStatement.entries[0]).toMatchObject({
+      kind: 'payment',
+      balance: '200.00',
+    });
+
     const expenses = (await agent.get(api('/expenses')).expect(200)).body.data;
-    expect(expenses.total).toBe('200.00');
+    expect(expenses).toMatchObject({ total: 1, sum: '200.00', page: 1 });
+    expect(expenses.items[0]).toMatchObject({ id: expense.id });
+    const searched = (
+      await agent.get(api('/expenses?q=electric&sort=-amount')).expect(200)
+    ).body.data;
+    expect(searched).toMatchObject({ total: 1, sum: '200.00' });
+    expect(
+      (await agent.get(api('/expenses?q=Rent')).expect(200)).body.data,
+    ).toMatchObject({ items: [], total: 0, sum: '0.00' });
     expect(
       (await agent.get(api('/expenses/categories')).expect(200)).body.data,
     ).toEqual(['Electricity']);

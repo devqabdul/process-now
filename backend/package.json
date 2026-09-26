@@ -25,7 +25,8 @@
     "test:cov": "vitest run --coverage",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "migrate:deploy": "prisma migrate deploy",
-    "create:super-admin": "tsx prisma/create-super-admin.ts"
+    "create:super-admin": "tsx prisma/create-super-admin.ts",
+    "seed:demo": "tsx prisma/seed-demo.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.0.3",
@@ -43,9 +44,11 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^18.0.0",
     "helmet": "^8.3.0",
+    "pdfkit": "^0.20.2",
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
+    "to-words": "^7.1.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -57,6 +60,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/node": "^24.13.5",
+    "@types/pdfkit": "^0.17.6",
     "@types/pg": "^8.23.1",
     "@types/source-map-support": "^0.5.10",
     "@types/supertest": "^7.2.1",

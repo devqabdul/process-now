@@ -105,9 +105,11 @@ describe.skipIf(!HAS_DB)('tenant isolation (e2e, DB)', () => {
     ['get', () => api(`/orders/${b.orderId}`)],
     ['post', () => api(`/orders/${b.orderId}/start`)],
     ['get', () => api(`/bills/${b.billId}`)],
+    ['get', () => api(`/bills/${b.billId}/pdf`)],
     ['get', () => api(`/service-types/${b.serviceTypeId}`)],
     ['get', () => api(`/bank-accounts/${b.accountId}`)],
     ['get', () => api(`/bank-accounts/${b.accountId}/statement`)],
+    ['get', () => api(`/vendors/${b.vendorId}/statement`)],
     ['patch', () => api(`/bank-accounts/${b.accountId}`)],
     ['patch', () => api(`/expenses/${b.expenseId}`)],
     ['delete', () => api(`/expenses/${b.expenseId}`)],
@@ -160,21 +162,18 @@ describe.skipIf(!HAS_DB)('tenant isolation (e2e, DB)', () => {
   });
 
   it('lists only its own records', async () => {
-    for (const path of [
-      '/orders',
-      '/bills',
-      '/vendors',
-      '/service-types',
-      '/bank-accounts',
-      '/expenses/categories',
-    ]) {
+    for (const path of ['/orders', '/bills', '/vendors', '/service-types']) {
+      const res = await agentA.get(api(path)).expect(200);
+      expect(res.body.data).toMatchObject({ items: [], total: 0 });
+    }
+    for (const path of ['/bank-accounts', '/expenses/categories']) {
       const res = await agentA.get(api(path)).expect(200);
       expect(res.body.data).toEqual([]);
     }
     const res = await agentA
       .get(api('/expenses?from=2026-01-01&to=2026-01-31'))
       .expect(200);
-    expect(res.body.data.expenses).toEqual([]);
+    expect(res.body.data).toMatchObject({ items: [], total: 0, sum: '0.00' });
   });
 
   it('ignores a companyId sent in the body', async () => {

@@ -26,7 +26,7 @@ Two things are not optional:
 Everything else is judgement. What exists today: `dates.spec.ts` and `identifier.spec.ts` for the other
 pure helpers, `guards.e2e-spec.ts` for auth and validation behaviour, `app.e2e-spec.ts` for the envelope
 and error shapes, and `order-flow.e2e-spec.ts` for the order → return → bill → payment path plus
-snapshotting, cancelling, voiding, password change, cursor paging and concurrent numbering.
+snapshotting, cancelling, voiding, password change, paging and concurrent numbering.
 
 Unit specs sit **beside their subject**; e2e specs live in `test/`.
 
