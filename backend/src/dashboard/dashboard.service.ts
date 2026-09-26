@@ -38,14 +38,12 @@ export class DashboardService {
         select: {
           id: true,
           orderNo: true,
+          numberPrefix: true,
           status: true,
           receivedAt: true,
           vendor: { select: { name: true } },
           items: {
-            select: {
-              qtyIn: true,
-              serviceType: { select: { name: true, unit: true } },
-            },
+            select: { qtyIn: true, serviceName: true, unit: true },
             orderBy: { id: 'asc' },
           },
         },
@@ -81,7 +79,7 @@ export class DashboardService {
       }),
       this.prisma.orderItem.findMany({
         where: { order: { companyId, returnedAt: range, status: 'returned' } },
-        select: { qtyOut: true, serviceType: { select: { unit: true } } },
+        select: { qtyOut: true, unit: true },
       }),
       this.prisma.dailyLog.findUnique({
         where: {
@@ -90,7 +88,7 @@ export class DashboardService {
       }),
       this.prisma.company.findUniqueOrThrow({
         where: { id: companyId },
-        select: { settings: true, numberPrefix: true },
+        select: { settings: true },
       }),
       this.prisma.expense.aggregate({
         where: { companyId, spentOn: toDateColumn(date) },
@@ -100,11 +98,8 @@ export class DashboardService {
 
     // Quantities are summed per unit: adding pieces to kg means nothing.
     const byUnit = new Map<string, Decimal>();
-    for (const { qtyOut, serviceType } of returnedItems) {
-      byUnit.set(
-        serviceType.unit,
-        (byUnit.get(serviceType.unit) ?? new Decimal(0)).plus(qtyOut ?? 0),
-      );
+    for (const { qtyOut, unit } of returnedItems) {
+      byUnit.set(unit, (byUnit.get(unit) ?? new Decimal(0)).plus(qtyOut ?? 0));
     }
 
     // bill_on is the snapshot taken when the order was created, so an edited
@@ -128,12 +123,12 @@ export class DashboardService {
       hasOrders: totalOrders > 0,
       pendingOrders: pendingOrders.map((order) => ({
         id: order.id,
-        orderNo: formatDocumentNo(company.numberPrefix, order.orderNo),
+        orderNo: formatDocumentNo(order.numberPrefix, order.orderNo),
         vendorName: order.vendor.name,
         // The first line stands for the order in this preview; /orders has them all.
-        serviceTypeName: order.items[0]?.serviceType.name ?? '',
+        serviceTypeName: order.items[0]?.serviceName ?? '',
         qtyIn: order.items[0]?.qtyIn.toString() ?? '0',
-        unit: order.items[0]?.serviceType.unit ?? '',
+        unit: order.items[0]?.unit ?? '',
         receivedAt: order.receivedAt.toISOString(),
         status: order.status as (typeof PENDING)[number],
       })),

@@ -57,7 +57,7 @@ export const buildOrderColumns = (actions: OrderActionHandlers) =>
       header: 'Quantity in',
       meta: {
         className: 'w-28 text-right font-mono',
-        exportValue: (order) => order.items.reduce((sum, item) => sum + Number(item.qtyIn), 0),
+        exportValue: orderQuantity,
       },
       cell: ({ row }) => orderQuantity(row.original),
     }),
@@ -90,9 +90,18 @@ export const buildOrderColumns = (actions: OrderActionHandlers) =>
       header: 'Bill total',
       meta: {
         className: 'w-28 text-right font-mono',
-        exportValue: (order) => order.bill?.total,
+        // A voided bill is owed nothing, so its total must not read as money due.
+        exportValue: (order) => (order.bill?.voidedAt ? 'Voided' : order.bill?.total),
       },
-      cell: ({ row }) => (row.original.bill ? formatMoney(row.original.bill.total) : '—'),
+      cell: ({ row }) => {
+        const { bill } = row.original;
+        if (!bill) return '—';
+        return bill.voidedAt ? (
+          <span className="text-fg-muted">Voided</span>
+        ) : (
+          formatMoney(bill.total)
+        );
+      },
     }),
     helper.display({
       id: 'actions',

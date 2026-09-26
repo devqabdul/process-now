@@ -87,7 +87,12 @@ export const OrdersListPage = () => {
     retry,
   } = useOrdersListPage();
 
-  const rowActions = { onStart: start, onReturn: openReturn, onCancel: openCancel };
+  const rowActions = {
+    onStart: start,
+    onReturn: openReturn,
+    onCancel: openCancel,
+    busy: isSubmitting,
+  };
 
   const empty = hasFilters ? (
     <EmptyState
@@ -171,6 +176,12 @@ export const OrdersListPage = () => {
       {exportError && (
         <p role="alert" className="text-13 text-danger-strong">
           {exportError}
+        </p>
+      )}
+      {/* Start has no dialog of its own, so its failure shows here. */}
+      {actionError && !returnTarget && !cancelTarget && (
+        <p role="alert" className="text-13 text-danger-strong">
+          {actionError}
         </p>
       )}
 

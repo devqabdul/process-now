@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/client';
-import { companyPrefix } from '../common/company-number.js';
 import { dayRange } from '../common/dates.js';
 import type { DateRangeQueryDto } from '../common/dto/date-range-query.dto.js';
+import { toMobileDigits } from '../common/identifier.js';
 import { resolveRange } from '../common/validators.js';
 import {
   listArgs,
@@ -26,7 +26,11 @@ const vendorList: ListSpec<
     { name: { contains: term, mode: 'insensitive' } },
     { address: { contains: term, mode: 'insensitive' } },
     // Phones are stored as 10 digits, so "+91 98000" still matches.
-    { phone: { contains: term.replace(/\D/g, '') || term } },
+    {
+      phone: {
+        contains: toMobileDigits(term.replace(/^\s*\+91/, '')) || term,
+      },
+    },
   ],
   sortable: {
     name: (dir) => [{ name: dir }],
@@ -61,23 +65,18 @@ export class VendorsService {
     const window = { gte: dayRange(from).gte, lt: dayRange(to).lt };
     const before = { lt: window.gte };
     const ofVendor = { order: { vendorId: id } };
-    const [vendor, prefix, orders, bills, payments, billedBefore, paidBefore] =
+    const [vendor, orders, bills, payments, billedBefore, paidBefore] =
       await Promise.all([
         this.findOne(companyId, id),
-        companyPrefix(this.prisma, companyId),
         this.prisma.order.findMany({
           where: { companyId, vendorId: id, receivedAt: window },
           select: {
             id: true,
             orderNo: true,
+            numberPrefix: true,
             status: true,
             receivedAt: true,
-            items: {
-              select: {
-                qtyIn: true,
-                serviceType: { select: { name: true, unit: true } },
-              },
-            },
+            items: { select: { qtyIn: true, serviceName: true, unit: true } },
           },
         }),
         this.prisma.bill.findMany({
@@ -85,11 +84,12 @@ export class VendorsService {
           select: {
             id: true,
             billNo: true,
+            numberPrefix: true,
             total: true,
             voidedAt: true,
             voidReason: true,
             issuedAt: true,
-            order: { select: { id: true, orderNo: true } },
+            order: { select: { id: true, orderNo: true, numberPrefix: true } },
           },
         }),
         this.prisma.payment.findMany({
@@ -99,7 +99,7 @@ export class VendorsService {
             amount: true,
             method: true,
             paidAt: true,
-            bill: { select: { id: true, billNo: true } },
+            bill: { select: { id: true, billNo: true, numberPrefix: true } },
             bankAccount: { select: { name: true } },
           },
         }),
@@ -120,7 +120,7 @@ export class VendorsService {
       vendor,
       from,
       to,
-      ...buildStatementEntries(prefix, opening, { orders, bills, payments }),
+      ...buildStatementEntries(opening, { orders, bills, payments }),
     };
   }
 

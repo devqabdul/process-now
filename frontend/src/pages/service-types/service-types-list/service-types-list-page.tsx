@@ -34,6 +34,7 @@ export const ServiceTypesListPage = () => {
     pickerColumns,
     target,
     saved,
+    failed,
     showTable,
     isLoading,
     isRefreshing,
@@ -52,6 +53,7 @@ export const ServiceTypesListPage = () => {
     openEdit,
     closeDialog,
     dismissSaved,
+    dismissFailed,
     undoRetire,
     save,
     setActive,
@@ -205,6 +207,7 @@ export const ServiceTypesListPage = () => {
         onDismiss={dismissSaved}
         action={undoRetire ? { label: 'Undo', onClick: undoRetire } : undefined}
       />
+      <Toast tone="danger" message={failed} onDismiss={dismissFailed} />
     </>
   );
 };

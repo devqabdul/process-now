@@ -26,16 +26,24 @@ export const Menu = ({ label, children, className, triggerClassName }: MenuProps
   const root = useRef<HTMLDivElement>(null);
 
   // callbacks
-  const close = () => setOpen(false);
+  // Focus back on ⋮, so a dialog an item opens restores focus there when it closes.
+  const close = (returnFocus = true) => {
+    setOpen(false);
+    if (returnFocus) trigger.current?.focus();
+  };
+
+  // Pinned to the trigger's bottom-right.
+  const anchor = () => {
+    const rect = trigger.current?.getBoundingClientRect();
+    if (rect) setPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+  };
 
   const toggle = () => {
     if (open) {
       close();
       return;
     }
-    const rect = trigger.current?.getBoundingClientRect();
-    // Pinned to the trigger's bottom-right, measured at the moment it opens.
-    if (rect) setPosition({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    anchor();
     setOpen(true);
   };
 
@@ -44,18 +52,20 @@ export const Menu = ({ label, children, className, triggerClassName }: MenuProps
     if (!open) return;
     const onKey = (event: KeyboardEvent) => event.key === 'Escape' && close();
     const onClick = (event: MouseEvent) => {
-      if (!root.current?.contains(event.target as Node)) close();
+      if (!root.current?.contains(event.target as Node)) close(false);
     };
     document.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onClick);
-    // Fixed coordinates go stale the moment anything scrolls, so the menu leaves with it.
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
+    // Fixed coordinates go stale when anything scrolls, so the menu follows its trigger.
+    // Closing instead would also close it on the scroll a click itself causes, when the
+    // browser brings a half-hidden ⋮ into view.
+    window.addEventListener('scroll', anchor, true);
+    window.addEventListener('resize', anchor);
     return () => {
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('mousedown', onClick);
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
+      window.removeEventListener('scroll', anchor, true);
+      window.removeEventListener('resize', anchor);
     };
   }, [open]);
 
@@ -83,6 +93,7 @@ export const Menu = ({ label, children, className, triggerClassName }: MenuProps
           style={{ top: position.top, right: position.right }}
           className="fixed z-50 min-w-44 overflow-hidden rounded-12 border border-line bg-surface py-1 shadow-popover"
         >
+          {/* eslint-disable-next-line react-hooks/refs -- close is only called from item handlers, never during render. */}
           {children(close)}
         </div>
       )}
@@ -94,18 +105,21 @@ export const MenuItem = ({
   children,
   onClick,
   tone = 'neutral',
+  disabled,
 }: {
   children: ReactNode;
   onClick: () => void;
   // Destructive items read as destructive before they are clicked, not after.
   tone?: 'neutral' | 'danger';
+  disabled?: boolean | undefined;
 }) => (
   <button
     type="button"
     role="menuitem"
     onClick={onClick}
+    disabled={disabled}
     className={cn(
-      'flex w-full items-center gap-2 px-3 py-2.5 text-left text-13 transition-colors duration-150 focus-visible:outline-none',
+      'flex w-full items-center gap-2 px-3 py-2.5 text-left text-13 transition-colors duration-150 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
       tone === 'danger'
         ? 'text-danger-strong hover:bg-danger-soft focus-visible:bg-danger-soft'
         : 'hover:bg-surface-muted focus-visible:bg-surface-muted',

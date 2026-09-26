@@ -17,6 +17,7 @@ describe('dates', () => {
     expect(isDateString('2026-02-28')).toBe(true);
     expect(isDateString('2026-02-30')).toBe(false);
     expect(isDateString('20-02-2026')).toBe(false);
+    expect(isDateString('0000-01-01')).toBe(false);
   });
 
   it('adds days across months', () => {

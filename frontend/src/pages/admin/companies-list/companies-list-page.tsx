@@ -53,6 +53,8 @@ export const CompaniesListPage = () => {
     showPassword,
     resetDone,
     dismissResetDone,
+    failed,
+    dismissFailed,
     deactivateTarget,
     isDeactivating,
     deactivateError,
@@ -211,6 +213,7 @@ export const CompaniesListPage = () => {
       </SideSheet>
 
       <Toast message={resetDone} onDismiss={dismissResetDone} />
+      <Toast tone="danger" message={failed} onDismiss={dismissFailed} />
 
       <DeactivateCompanyDialog
         company={deactivateTarget}

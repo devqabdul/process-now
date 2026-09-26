@@ -5,7 +5,8 @@ import { AppModule } from './app.module.js';
 import type { Env } from './config/env.js';
 import { setupApp } from './setup-app.js';
 
-const app = await NestFactory.create(AppModule);
+// setupApp() registers its own parsers with a size limit and a clean error.
+const app = await NestFactory.create(AppModule, { bodyParser: false });
 const config = app.get<ConfigService<Env, true>>(ConfigService);
 const isProduction = config.get('NODE_ENV', { infer: true }) === 'production';
 

@@ -17,8 +17,12 @@ const RATE = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 });
  */
 export const estimateElectricityCost = (units: string, rate: number | undefined) => {
   if (!rate || rate <= 0 || units.trim() === '') return undefined;
-  const cost = Number(units) * rate;
-  return Number.isFinite(cost) ? (Math.round(cost * 100) / 100).toFixed(2) : undefined;
+  // Whole thousandths of a unit × whole paise, rounded half-up like the server: in floats,
+  // 1.38 × 9.25 comes out a hair under 12.765 and would round to 12.76, not 12.77.
+  const milliUnits = Math.round(Number(units) * 1000);
+  const ratePaise = Math.round(rate * 100);
+  const paise = Math.floor((milliUnits * ratePaise + 500) / 1000);
+  return Number.isSafeInteger(milliUnits * ratePaise) ? (paise / 100).toFixed(2) : undefined;
 };
 
 interface DailyLogFieldsProps {
@@ -66,7 +70,7 @@ export const DailyLogFields = ({ form, idPrefix, rate, pickDate }: DailyLogField
           placeholder="e.g. 8"
           error={errors.machineHours}
           leading={<Clock className={ICON} strokeWidth={1.8} aria-hidden="true" />}
-          help={<AmountWords value={hours} unit="hours" />}
+          help={<AmountWords value={hours} unit={Number(hours) === 1 ? 'hour' : 'hours'} />}
           {...register('machineHours')}
         />
         <FormField
@@ -79,7 +83,7 @@ export const DailyLogFields = ({ form, idPrefix, rate, pickDate }: DailyLogField
           leading={<Zap className={ICON} strokeWidth={1.8} aria-hidden="true" />}
           help={
             <>
-              <AmountWords value={units} unit="units" />
+              <AmountWords value={units} unit={Number(units) === 1 ? 'unit' : 'units'} />
               {cost !== undefined && (
                 <span className="block">
                   ≈ {formatMoney(cost)} at ₹{RATE.format(rate ?? 0)}/unit (estimate)

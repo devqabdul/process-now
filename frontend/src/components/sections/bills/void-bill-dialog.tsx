@@ -39,7 +39,7 @@ export const VoidBillDialog = ({
     <Dialog
       open={!!bill}
       title={`Void bill ${bill?.billNo}?`}
-      description={`${bill?.order.vendor.name} no longer owes the ${formatMoney(bill?.total)}. The bill stays on the list as voided — nothing is deleted.`}
+      description={`${bill?.order.vendor.name} no longer owes the ${formatMoney(bill?.total)}. It is kept as voided — nothing is deleted — and its order goes back to Processing, so you can return it again for a corrected bill.`}
       icon={
         <span className="grid size-9 flex-none place-items-center rounded-10 bg-danger-softer text-danger-strong">
           <Ban aria-hidden="true" className="size-4.5" strokeWidth={1.8} />

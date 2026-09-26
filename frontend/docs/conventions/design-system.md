@@ -37,11 +37,70 @@ not a pixel promise — the `sm` and `lg` presets remap every key.
 
 ### Motion
 
-150–250ms, one easing curve (`--ease-out-expo`) for entrances. Named animations:
-`animate-rise`, `animate-fade-in`, `animate-pop`, `animate-shake`, `animate-modal-in`,
-`animate-toast-in`, `animate-sheet-in`, `animate-palette-in`, `animate-drift`,
-`animate-pulse-dot`, `animate-shimmer`, `animate-routebar`, `animate-mark-spin` (the turning
-mark in `AppSplash` and `LoadingMark`). All keyframes are in the same file.
+The key words MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are to be read as in
+[BCP 14](https://www.rfc-editor.org/info/bcp14) (RFC 2119, RFC 8174) when, and only when, they
+appear in all capitals. Adapted from Disney's 12 principles as written for the web by
+[Raphael Salaja](https://github.com/raphaelsalaja/skill/tree/main/skills/12-principles-of-animation);
+the rule IDs are his, so an audit against that skill maps line for line.
+
+**Tokens.** All keyframes and `--animate-*` tokens live in `src/app/tailwind.css`. A new animation
+MUST be a token there, not an inline `@keyframes` or `[animation:…]` in a component. Named
+animations: `animate-rise`, `animate-fade-in`, `animate-pop`, `animate-shake`, `animate-modal-in`,
+`animate-toast-in`, `animate-sheet-in`, `animate-palette-in`, `animate-drift`, `animate-pulse-dot`,
+`animate-shimmer`, `animate-routebar`, `animate-mark-spin` (the turning mark in `AppSplash` and
+`LoadingMark`).
+
+**Timing**
+
+- `timing-under-300ms` — An animation the user started (a click, tap, key or submit) MUST finish
+  within 300ms. System-initiated loading feedback (`AppSplash`, `LoadingMark`) and continuous
+  indicators (spinners, shimmer, the route bar, ambient loops) are not user-initiated and are exempt.
+- `timing-consistent` — Similar elements MUST use identical timing. State changes (colour, border,
+  shadow, opacity on hover/focus/press) use `duration-150`; movement (a lift, a rotate, a width or
+  size change) uses `duration-200`. Anything else needs a reason in the PR.
+- `timing-no-entrance-context-menu` — A context menu (the ⋮ row menu, `ui/menu.tsx`) SHOULD NOT
+  animate on entrance. Button-anchored popovers (the vendor quick-jump, notifications) are not
+  context menus and MAY use `animate-pop`.
+
+**Easing**
+
+- `easing-entrance-ease-out` — Entrances MUST ease out: `var(--ease-out-expo)`, or `ease-out` for a
+  plain fade.
+- `easing-exit-ease-in` — Exits MUST ease in. The app has no exit animations today (dialogs close
+  natively); the first one added MUST follow this.
+- `easing-no-linear-motion` — `linear` SHOULD be used only for progress indicators: spinners,
+  `shimmer`, `mark-spin`.
+- `easing-natural-decay` — Anything that decays to rest (audio gain, a momentum scroll) SHOULD ramp
+  exponentially, not linearly. Nothing in the app does this yet.
+
+**Physics**
+
+- `physics-active-state` — A discrete pressable control (button, icon button, chip, toggle) MUST
+  scale on `:active`. A base-layer rule in `tailwind.css` gives every enabled `<button>` `scale: 0.98`,
+  so components MUST NOT add a different press transform; a link styled as a control (the phone
+  nav's + action) opts in with `active:scale-[0.98]`. The press is instant (no transition on
+  `scale`), which keeps every control identical and inside the 100ms feedback window. Menu rows (`role="menuitem"`), listbox
+  options and links are exempt: they are rows, not objects.
+- `physics-subtle-deformation` — Squash, stretch and scale-in MUST stay within 0.95–1.05 (`pop`
+  starts at 0.95). The `pulse-dot` status loop is an indicator, not deformation, and is exempt.
+- `physics-spring-for-overshoot` — Overshoot-and-settle SHOULD come from a spring (a CSS `linear()`
+  spring curve), not a stretched ease. No animation overshoots today.
+- `physics-no-excessive-stagger` — Stagger MUST NOT exceed 50ms per item. Skeleton rows stagger
+  40ms.
+
+**Staging**
+
+- `staging-one-focal-point` — Only one element SHOULD animate prominently at a time. Slow,
+  low-opacity ambient motion (the login panel's `drift`) is background, not a focal point.
+- `staging-dim-background` — A modal (`Dialog`, `SideSheet`, the command palette, the phone menu
+  sheet) SHOULD dim what is behind it through `backdrop:`. The desktop menu sheet is a menu, not a
+  modal, and stays clear.
+- `staging-z-index-hierarchy` — An animated overlay MUST sit on a declared layer: the native
+  `<dialog>` top layer, or an explicit `z-*` (popovers `z-50`, toasts and notifications `z-40`).
+
+**Reduced motion.** Under `prefers-reduced-motion: reduce` every animation and transition MUST
+collapse to ~0ms; the base-layer block in `tailwind.css` does this globally and components MUST NOT
+opt out of it.
 
 The shimmer sweep is a pseudo-element animated with `transform` so it stays on the compositor;
 callers stagger rows with an inline `animationDelay`, which the pseudo-element inherits.

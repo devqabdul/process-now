@@ -32,8 +32,10 @@ amount       = unit_price × billable_qty
 ## Snapshots
 
 **An order item copies what it was priced with, so later edits never change an old bill.** At creation
-time `order_items` stores `unitPrice`, `unitCost`, `selectedOptions` (name + price + cost per choice) and
-`billOn`.
+time `order_items` stores `unitPrice`, `unitCost`, `selectedOptions` (name + price + cost per choice),
+`billOn`, and the `serviceName` and `unit` the bill prints. Orders and bills keep the `numberPrefix` they
+were numbered with, and a bill keeps the `companyName` and `gstNo` it was issued under — an invoice's
+number, issuer and GSTIN never change after issue. Views and the PDF read these, never the live rows.
 
 `billOn` is the one people forget. Without the snapshot, flipping a service type from `in` to `out` would
 silently re-bill every past order and move every past day's dashboard figure. `DashboardService` reads
@@ -56,7 +58,8 @@ double-return safe: the second one matches nothing and gets a 409 instead of a s
 
 Cancelling is only allowed **before** a bill exists. Once money is involved it has to be corrected
 through the bill — `POST /bills/:id/void`, which is itself refused if the bill has payments, because a
-refund has to be reconciled outside the app first.
+refund has to be reconciled outside the app first. Voiding puts the order back to `processing`, so the corrected
+return raises a new bill; the voided one stays for the record, and the order shows its latest bill.
 
 ## Per-company numbering
 

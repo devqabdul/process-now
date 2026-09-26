@@ -52,14 +52,14 @@ export const RouteErrorBoundary = () => {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="h-11 rounded-12 bg-primary px-5 text-sm font-semibold text-primary-fg transition-colors duration-200 hover:bg-primary-hover"
+          className="h-11 rounded-12 bg-primary px-5 text-sm font-semibold text-primary-fg transition-colors duration-150 hover:bg-primary-hover"
         >
           Refresh
         </button>
         <button
           type="button"
           onClick={() => void resetApp()}
-          className="ml-2 h-11 rounded-12 border border-line px-5 text-sm font-semibold text-fg-secondary transition-colors duration-200 hover:border-line-strong hover:text-fg"
+          className="ml-2 h-11 rounded-12 border border-line px-5 text-sm font-semibold text-fg-secondary transition-colors duration-150 hover:border-line-strong hover:text-fg"
         >
           Reset app
         </button>

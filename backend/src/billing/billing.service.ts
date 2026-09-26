@@ -5,13 +5,13 @@ import {
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/client';
 import { assertBankAccount } from '../common/bank-account.js';
-import { companyPrefix } from '../common/company-number.js';
 import { readSettings } from '../common/company-settings.js';
 import {
   formatDocumentNo,
   parseDocumentNo,
 } from '../common/document-number.js';
 import { fitsInMoneyColumn, itemMoney, money } from '../common/money.js';
+import { withSnapshotServiceType } from '../common/order-item.js';
 import {
   listArgs,
   paged,
@@ -29,6 +29,7 @@ const listInclude = {
     select: {
       id: true,
       orderNo: true,
+      numberPrefix: true,
       vendor: { select: { id: true, name: true } },
     },
   },
@@ -59,13 +60,19 @@ type BillAmounts = {
   amountPaid: Decimal;
   voidedAt: Date | null;
   billNo: number;
+  numberPrefix: string | null;
   payments?: { amount: Decimal }[];
   order?: {
     orderNo: number;
+    numberPrefix: string | null;
     items?: {
       unitPrice: Decimal;
       unitCost: Decimal;
       amount: Decimal | null;
+      serviceName: string;
+      unit: string;
+      billOn: string;
+      serviceType: object;
     }[];
   } | null;
 };
@@ -85,13 +92,13 @@ const describeOptions = (json: Prisma.JsonValue) =>
     .join(', ');
 
 /** Status is derived, never stored: a voided bill owes nothing. */
-function withStatus<T extends BillAmounts>(bill: T, prefix: string | null) {
+function withStatus<T extends BillAmounts>(bill: T) {
   const amountDue = bill.voidedAt
     ? new Decimal(0)
     : bill.total.minus(bill.amountPaid);
   return {
     ...bill,
-    billNo: formatDocumentNo(prefix, bill.billNo),
+    billNo: formatDocumentNo(bill.numberPrefix, bill.billNo),
     subtotal: money(bill.subtotal),
     gstAmount: bill.gstAmount === null ? null : money(bill.gstAmount),
     total: money(bill.total),
@@ -102,8 +109,12 @@ function withStatus<T extends BillAmounts>(bill: T, prefix: string | null) {
     ...(bill.order && {
       order: {
         ...bill.order,
-        orderNo: formatDocumentNo(prefix, bill.order.orderNo),
-        ...(bill.order.items && { items: bill.order.items.map(itemMoney) }),
+        orderNo: formatDocumentNo(bill.order.numberPrefix, bill.order.orderNo),
+        ...(bill.order.items && {
+          items: bill.order.items.map((item) =>
+            withSnapshotServiceType(itemMoney(item)),
+          ),
+        }),
       },
     }),
     amountDue: money(amountDue),
@@ -153,7 +164,13 @@ export class BillingService {
     const company = await tx.company.update({
       where: { id: companyId },
       data: { nextBillNo: { increment: 1 } },
-      select: { nextBillNo: true, gstNo: true, settings: true },
+      select: {
+        nextBillNo: true,
+        name: true,
+        gstNo: true,
+        numberPrefix: true,
+        settings: true,
+      },
     });
     const gstRate = company.gstNo
       ? readSettings(company.settings).gstRate
@@ -170,6 +187,9 @@ export class BillingService {
         companyId,
         orderId,
         billNo: company.nextBillNo - 1,
+        numberPrefix: company.numberPrefix,
+        companyName: company.name,
+        gstNo: company.gstNo,
         subtotal: subtotal.toFixed(2),
         gstAmount: gstAmount?.toFixed(2) ?? null,
         total: total.toFixed(2),
@@ -199,27 +219,23 @@ export class BillingService {
       query,
       billList,
     );
-    const [prefix, bills, total] = await Promise.all([
-      companyPrefix(this.prisma, companyId),
+    const [bills, total] = await Promise.all([
       this.prisma.bill.findMany({ ...args, include: listInclude }),
       this.prisma.bill.count({ where: args.where }),
     ]);
     return paged(
-      bills.map((bill) => withStatus(bill, prefix)),
+      bills.map((bill) => withStatus(bill)),
       total,
       query,
     );
   }
 
   async findOne(companyId: string, id: string) {
-    const [prefix, bill] = await Promise.all([
-      companyPrefix(this.prisma, companyId),
-      this.prisma.bill.findUniqueOrThrow({
-        where: { id, companyId },
-        include: detailInclude,
-      }),
-    ]);
-    return withStatus(bill, prefix);
+    const bill = await this.prisma.bill.findUniqueOrThrow({
+      where: { id, companyId },
+      include: detailInclude,
+    });
+    return withStatus(bill);
   }
 
   /**
@@ -227,21 +243,14 @@ export class BillingService {
    * matches the bill, payments included. Base64 inside the usual envelope.
    */
   async pdf(companyId: string, id: string) {
-    const [prefix, company, bill] = await Promise.all([
-      companyPrefix(this.prisma, companyId),
-      this.prisma.company.findUniqueOrThrow({
-        where: { id: companyId },
-        select: { name: true, gstNo: true },
-      }),
-      this.prisma.bill.findUniqueOrThrow({
-        where: { id, companyId },
-        include: detailInclude,
-      }),
-    ]);
-    const view = withStatus(bill, prefix);
+    const bill = await this.prisma.bill.findUniqueOrThrow({
+      where: { id, companyId },
+      include: detailInclude,
+    });
+    const view = withStatus(bill);
     const { vendor } = bill.order;
     const buffer = await renderBillPdf({
-      company,
+      company: { name: bill.companyName, gstNo: bill.gstNo },
       vendor,
       billNo: view.billNo,
       orderNo: view.order.orderNo,
@@ -249,14 +258,14 @@ export class BillingService {
       status: view.status,
       voidReason: bill.voidReason,
       lines: bill.order.items.map((item) => ({
-        service: item.serviceType.name,
+        service: item.serviceName,
         options: describeOptions(item.selectedOptions),
         qty: billableQty(
           item.billOn,
           item.qtyIn,
           item.qtyOut ?? item.qtyIn,
         ).toString(),
-        unit: item.serviceType.unit,
+        unit: item.unit,
         rate: money(item.unitPrice),
         amount: money(item.amount ?? 0),
       })),
@@ -359,9 +368,9 @@ export class BillingService {
   }
 
   /**
-   * Voids a bill raised in error. Paid bills must be refunded and reconciled
-   * outside the app first, so voiding one with payments is refused rather than
-   * silently discarding the money.
+   * Voids a bill raised in error and reopens its order for a corrected return.
+   * Paid bills must be refunded and reconciled outside the app first, so voiding
+   * one with payments is refused rather than silently discarding the money.
    */
   async voidBill(companyId: string, actor: string, id: string, reason: string) {
     await this.prisma.$transaction(async (tx) => {
@@ -381,9 +390,14 @@ export class BillingService {
           'This bill has payments; refund and remove them before voiding',
         );
       }
-      await tx.bill.update({
+      const { orderId } = await tx.bill.update({
         where: { id, companyId },
         data: { voidedAt: new Date(), voidReason: reason, updatedBy: actor },
+      });
+      // Back to processing, so the corrected return raises a new bill.
+      await tx.order.update({
+        where: { id: orderId, companyId },
+        data: { status: 'processing', returnedAt: null, updatedBy: actor },
       });
     });
     return this.findOne(companyId, id);

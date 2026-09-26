@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
-import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod/mini';
@@ -8,6 +8,7 @@ import * as z from 'zod/mini';
 import { isSuccess, type NormalizedError, safeApiError } from '@api/process-backend';
 import { login, meQueryOptions } from '@api/process-backend/auth';
 import { ROLE_HOME } from '@constants/roles';
+import { usePersistedState } from '@hooks/use-persisted-state';
 import {
   displayIdentifier,
   type IdentifierKind,
@@ -45,7 +46,7 @@ export type LoginFormInput = z.infer<typeof loginSchema>;
 export type LoginStep = 'identify' | 'password';
 type ShakeField = keyof LoginFormInput;
 
-const SHAKE_MS = 420;
+const SHAKE_MS = 320;
 
 // Wrong credentials get one message for both fields, so the API never reveals which accounts exist.
 const toLoginErrorMessage = (err: NormalizedError) => {
@@ -64,11 +65,13 @@ export interface UseLoginPageResult {
   identityShown: string;
   shakeField: ShakeField | null;
   showPassword: boolean;
+  capsLock: boolean;
   isSubmitting: boolean;
   selectKind: (kind: IdentifierKind) => void;
   handleContinue: (event: FormEvent<HTMLFormElement>) => void;
   handleSignIn: (event: FormEvent<HTMLFormElement>) => void;
   togglePassword: () => void;
+  trackCapsLock: (event: KeyboardEvent<HTMLInputElement>) => void;
   backToIdentify: () => void;
 }
 
@@ -77,6 +80,9 @@ export const useLoginPage = (): UseLoginPageResult => {
   const [step, setStep] = useState<LoginStep>('identify');
   const [shakeField, setShakeField] = useState<ShakeField | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
+  // The tab that last signed in on this device, so email users don't switch every time.
+  const [lastKind, setLastKind] = usePersistedState<IdentifierKind>('pn.loginKind', 'mobile');
   const shakeTimer = useRef<number | undefined>(undefined);
 
   // wiring
@@ -85,7 +91,11 @@ export const useLoginPage = (): UseLoginPageResult => {
   const form = useForm<LoginFormInput>({
     resolver: zodResolver(loginSchema),
     // Mobile first: most admins sign in with their phone.
-    defaultValues: { kind: 'mobile', identifier: '', password: '' },
+    defaultValues: {
+      kind: lastKind === 'email' ? 'email' : 'mobile',
+      identifier: '',
+      password: '',
+    },
     mode: 'onSubmit',
     reValidateMode: 'onSubmit',
   });
@@ -142,6 +152,7 @@ export const useLoginPage = (): UseLoginPageResult => {
       }
       // Login returns the same user /auth/me would, so seed it: the route guard then skips a round trip.
       const { user } = response.data.data;
+      setLastKind(values.kind);
       queryClient.setQueryData(meQueryOptions.queryKey, { user });
       // A role we don't know yet still lands somewhere: the sign-in already succeeded.
       const role = user.role;
@@ -170,6 +181,9 @@ export const useLoginPage = (): UseLoginPageResult => {
 
   const togglePassword = () => setShowPassword((shown) => !shown);
 
+  const trackCapsLock = (event: KeyboardEvent<HTMLInputElement>) =>
+    setCapsLock(event.getModifierState('CapsLock'));
+
   const backToIdentify = () => {
     resetField('password');
     clearErrors();
@@ -188,11 +202,13 @@ export const useLoginPage = (): UseLoginPageResult => {
     identityShown,
     shakeField,
     showPassword,
+    capsLock,
     isSubmitting: formState.isSubmitting,
     selectKind,
     handleContinue,
     handleSignIn,
     togglePassword,
+    trackCapsLock,
     backToIdentify,
   };
 };

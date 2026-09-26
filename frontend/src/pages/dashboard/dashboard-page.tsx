@@ -51,6 +51,8 @@ export const DashboardPage = () => {
               </div>
               <Link
                 to="/daily-log"
+                // A past day opens its own log rather than today's.
+                state={date === today ? null : { logDate: date }}
                 className={cn(
                   buttonClasses('primary', 'md'),
                   'flex-none hover:text-primary-fg hover:no-underline',

@@ -16,7 +16,7 @@ export const DateSwitcher = ({ date, max, onChange }: DateSwitcherProps) => {
   const atMax = date >= max;
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center lg:gap-1">
       <IconButton aria-label="Previous day" onClick={() => onChange(shiftIsoDate(date, -1))}>
         <ChevronLeft aria-hidden="true" className="size-4.25" strokeWidth={1.8} />
       </IconButton>
@@ -28,14 +28,13 @@ export const DateSwitcher = ({ date, max, onChange }: DateSwitcherProps) => {
         type="date"
         value={date}
         max={max}
-        onChange={(event) => event.target.value && onChange(event.target.value)}
-        className="h-11 rounded-10 border border-line-field bg-surface px-3 font-mono text-13 text-fg outline-none transition-[border-color,box-shadow] duration-150 focus:border-focus focus:shadow-focus lg:h-9.5"
+        onChange={({ target: { value } }) => value && onChange(value > max ? max : value)}
+        className="h-10 rounded-10 border border-line-field bg-surface px-2 font-mono text-13 lg:px-3 text-fg outline-none transition-[border-color,box-shadow] duration-150 focus:border-focus focus:shadow-focus lg:h-9.5"
       />
       <IconButton
         aria-label="Next day"
         disabled={atMax}
         onClick={() => onChange(shiftIsoDate(date, 1))}
-        className="disabled:cursor-not-allowed disabled:text-fg-faint disabled:hover:bg-transparent"
       >
         <ChevronRight aria-hidden="true" className="size-4.25" strokeWidth={1.8} />
       </IconButton>

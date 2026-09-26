@@ -53,6 +53,8 @@ RUN --mount=type=cache,target=/root/.yarn/berry/cache,sharing=locked \
     node -e "const f='package.json',p=JSON.parse(require('fs').readFileSync(f));delete p.scripts.postinstall;require('fs').writeFileSync(f,JSON.stringify(p,null,2))" \
     && yarn workspaces focus --production --all
 COPY --from=build /app/dist ./dist
+# Bill PDFs read these fonts from ../../assets relative to dist/billing at startup.
+COPY --from=build /app/assets ./assets
 # Shipped for reference and for a migration run started from this image's source
 # tree; nothing at runtime reads them.
 COPY --from=build /app/prisma ./prisma

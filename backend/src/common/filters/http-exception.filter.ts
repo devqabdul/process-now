@@ -69,17 +69,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
         fields,
       };
     }
-    // Body parser errors carry a status but aren't HttpExceptions: an oversized
-    // body is a 413 and malformed JSON a 400, not "internal server error".
+    // An oversized body carries a status but isn't an HttpException: a 413, not a 500.
+    // Malformed JSON is mapped in setupApp().
     const bodyParser = exception as { type?: string; status?: number };
     if (bodyParser?.type === 'entity.too.large') {
       return {
         status: HttpStatus.PAYLOAD_TOO_LARGE,
         message: 'That request is too large',
       };
-    }
-    if (bodyParser?.type === 'entity.parse.failed') {
-      return { status: HttpStatus.BAD_REQUEST, message: 'Malformed JSON body' };
     }
     // Pool exhaustion is temporary and the caller can retry; it is not a bug in
     // the request, and it should not read as one.

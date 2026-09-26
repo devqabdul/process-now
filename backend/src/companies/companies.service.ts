@@ -148,7 +148,19 @@ export class CompaniesService {
     return toView(
       await this.prisma.company.update({
         where: { id },
-        data: { ...dto, updatedBy: actor },
+        data: {
+          ...dto,
+          updatedBy: actor,
+          // Suspension signs everyone out for good; reactivating must not revive old cookies.
+          ...(dto.isActive === false && {
+            users: {
+              updateMany: {
+                where: {},
+                data: { tokenVersion: { increment: 1 } },
+              },
+            },
+          }),
+        },
         select: companySelect,
       }),
     );

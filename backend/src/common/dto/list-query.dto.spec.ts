@@ -21,6 +21,13 @@ describe('listArgs', () => {
     });
   });
 
+  it('escapes LIKE wildcards so they match literally', () => {
+    expect(listArgs(base, { ...query, q: '5%_a\\b' }, spec).where.OR).toEqual([
+      { name: '5\\%\\_a\\\\b' },
+      { phone: '5\\%\\_a\\\\b' },
+    ]);
+  });
+
   it('parses the sort and appends id in the same direction', () => {
     expect(listArgs(base, query, spec).orderBy).toEqual([
       { name: 'desc' },

@@ -55,6 +55,8 @@ describe.skipIf(!HAS_DB)('tenant isolation (e2e, DB)', () => {
           create: {
             serviceTypeId: st.id,
             billOn: 'out',
+            serviceName: st.name,
+            unit: st.unit,
             qtyIn: 10,
             qtyOut: 10,
             unitPrice: 8,
@@ -69,6 +71,7 @@ describe.skipIf(!HAS_DB)('tenant isolation (e2e, DB)', () => {
         companyId: B.company.id,
         orderId: order.id,
         billNo: 1,
+        companyName: 'Test company',
         subtotal: 80,
         total: 80,
       },
