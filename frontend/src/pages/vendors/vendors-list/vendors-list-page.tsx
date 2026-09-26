@@ -52,6 +52,9 @@ export const VendorsListPage = () => {
     save,
     saved,
     dismissSaved,
+    failed,
+    dismissFailed,
+    busyId,
     undoRetire,
     setActive,
     retry,
@@ -153,7 +156,7 @@ export const VendorsListPage = () => {
           items={vendors}
           rowKey={(vendor) => vendor.id}
           renderItem={(vendor) => (
-            <VendorCard vendor={vendor} onEdit={openEdit} onSetActive={setActive} />
+            <VendorCard vendor={vendor} onEdit={openEdit} onSetActive={setActive} busyId={busyId} />
           )}
           label="Vendors"
           loading={isLoading}
@@ -185,6 +188,7 @@ export const VendorsListPage = () => {
         onDismiss={dismissSaved}
         action={undoRetire ? { label: 'Undo', onClick: undoRetire } : undefined}
       />
+      <Toast tone="danger" message={failed} onDismiss={dismissFailed} />
     </>
   );
 };

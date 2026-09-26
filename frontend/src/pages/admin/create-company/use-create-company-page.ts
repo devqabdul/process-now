@@ -36,20 +36,6 @@ const toPrefix = (name: string) => {
   return PREFIX.test(letters) ? letters : '';
 };
 
-/**
- * A placeholder GSTIN built from the company name so demo companies don't share one, in the
- * shape the validator accepts: state code, 5 letters, 4 digits, a letter, entity digit, Z, check.
- * It is a stand-in for data entry, not a real registration — anyone can type over it.
- */
-const toSampleGstNo = (name: string) => {
-  const letters = name.toUpperCase().replace(/[^A-Z]/g, '');
-  if (letters.length < 2) return '';
-  const pan = letters.slice(0, 5).padEnd(5, 'A');
-  let hash = 0;
-  for (const char of letters) hash = (hash * 31 + char.charCodeAt(0)) % 10_000;
-  return `27${pan}${String(hash).padStart(4, '0')}M1Z${hash % 10}`;
-};
-
 const createCompanySchema = z
   .object({
     name: z.string(),
@@ -97,6 +83,10 @@ const FIELDS = [
 const isFieldName = (key: string): key is keyof CreateCompanyFormInput =>
   (FIELDS as readonly string[]).includes(key);
 
+// The API names the admin's fields by their place in the payload: admin.email → adminEmail.
+const toFieldName = (key: string) =>
+  key.replace(/^admin\.(\w)/, (_, first: string) => `admin${first.toUpperCase()}`);
+
 const toCreateErrorMessage = (err: NormalizedError) =>
   err.error_type === 'network'
     ? 'Unable to save this company. Check your connection and try again.'
@@ -107,14 +97,15 @@ const toPayload = (values: CreateCompanyFormInput): CreateCompanyPayload => {
   const numberPrefix = values.numberPrefix.trim();
   const phone = values.adminPhone.trim();
   const email = values.adminEmail.trim();
+  // Empty optional fields are left out: the API reads an explicit null as a value to check.
   return {
     name: values.name.trim(),
-    gstNo: gstNo ? gstNo.toUpperCase() : null,
-    numberPrefix: numberPrefix ? numberPrefix.toUpperCase() : null,
+    ...(gstNo && { gstNo: gstNo.toUpperCase() }),
+    ...(numberPrefix && { numberPrefix: numberPrefix.toUpperCase() }),
     admin: {
       name: values.adminName.trim(),
-      phone: phone ? toMobileDigits(phone) : null,
-      email: email ? email.toLowerCase() : null,
+      ...(phone && { phone: toMobileDigits(phone) }),
+      ...(email && { email: email.toLowerCase() }),
       password: values.password,
     },
   };
@@ -173,7 +164,9 @@ export const useCreateCompanyPage = (): UseCreateCompanyPageResult => {
       safeApiError(error, {
         context: { page: 'create-company', action: 'createCompany' },
         onError: (err) => {
-          const fields = Object.entries(err.fields ?? {}).filter(([key]) => isFieldName(key));
+          const fields = Object.entries(err.fields ?? {})
+            .map(([key, message]) => [toFieldName(key), message] as const)
+            .filter(([key]) => isFieldName(key));
           if (fields.length === 0) {
             setError('root', { type: 'server', message: toCreateErrorMessage(err) });
             return;
@@ -200,16 +193,12 @@ export const useCreateCompanyPage = (): UseCreateCompanyPageResult => {
   };
 
   // effects
-  // The prefix and the sample GST number are conveniences, not decisions: they keep
-  // following the name until someone types their own, and never overwrite what they typed.
+  // The prefix is a convenience, not a decision: it follows the name until someone types
+  // their own. A GST number is never suggested — only the company's real one belongs there.
   useEffect(() => {
     if (!formState.dirtyFields.numberPrefix) {
       const suggestion = toPrefix(name);
       if (suggestion) setValue('numberPrefix', suggestion);
-    }
-    if (!formState.dirtyFields.gstNo) {
-      const sample = toSampleGstNo(name);
-      if (sample) setValue('gstNo', sample);
     }
   }, [name]);
 

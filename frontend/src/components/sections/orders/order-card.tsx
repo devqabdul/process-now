@@ -41,16 +41,19 @@ export const OrderServices = ({ order }: { order: Order }) => {
 
 /** Quantity in, summed across the lot — the figure the floor counts. */
 export const orderQuantity = (order: Order) => {
-  const [first] = order.items;
-  if (!first) return '—';
-  const total = order.items.reduce((sum, item) => sum + Number(item.qtyIn), 0);
-  return formatQuantity(String(total), first.serviceType.unit);
+  if (order.items.length === 0) return '—';
+  // Pieces and metres never add up: one total per unit, "445 pcs + 656.1 metre".
+  const byUnit = new Map<string, number>();
+  for (const { qtyIn, serviceType } of order.items)
+    byUnit.set(serviceType.unit, (byUnit.get(serviceType.unit) ?? 0) + Number(qtyIn));
+  return [...byUnit].map(([unit, qty]) => formatQuantity(String(qty), unit)).join(' + ');
 };
 
 export interface OrderActionHandlers {
   onStart: (order: Order) => void;
   onReturn: (order: Order) => void;
   onCancel: (order: Order) => void;
+  busy?: boolean;
 }
 
 export const OrderActions = ({
@@ -58,6 +61,7 @@ export const OrderActions = ({
   onStart,
   onReturn,
   onCancel,
+  busy,
 }: { order: Order } & OrderActionHandlers) => {
   // A returned or cancelled order is finished: nothing left to do to it from here.
   const open = order.status === 'received' || order.status === 'processing';
@@ -69,6 +73,7 @@ export const OrderActions = ({
         <>
           {order.status === 'received' && (
             <MenuItem
+              disabled={busy}
               onClick={() => {
                 close();
                 onStart(order);
@@ -78,15 +83,18 @@ export const OrderActions = ({
               Start processing
             </MenuItem>
           )}
-          <MenuItem
-            onClick={() => {
-              close();
-              onReturn(order);
-            }}
-          >
-            <PackageCheck aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
-            Return to vendor
-          </MenuItem>
+          {/* received → processing → returned: a lot goes back only once it has been worked on. */}
+          {order.status === 'processing' && (
+            <MenuItem
+              onClick={() => {
+                close();
+                onReturn(order);
+              }}
+            >
+              <PackageCheck aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+              Return to vendor
+            </MenuItem>
+          )}
           <MenuItem
             tone="danger"
             onClick={() => {
@@ -122,7 +130,7 @@ export const OrderCard = ({ order, ...actions }: { order: Order } & OrderActionH
           </span>
           {order.bill && (
             <span className="font-mono text-11 text-fg-muted">
-              {order.bill.billNo} · {formatMoney(order.bill.total)}
+              {order.bill.billNo} · {order.bill.voidedAt ? 'Voided' : formatMoney(order.bill.total)}
             </span>
           )}
         </p>

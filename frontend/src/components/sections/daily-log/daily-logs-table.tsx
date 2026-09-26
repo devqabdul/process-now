@@ -17,6 +17,10 @@ export const DAILY_LOG_SKELETON_ROWS = 6;
 
 const helper = createColumnHelper<DataTableFeatures, DailyLog>();
 
+// "1 hr", "8.5 hrs"
+const counted = (qty: string, one: string, many: string) =>
+  formatQuantity(qty, Number(qty) === 1 ? one : many);
+
 const costOf = (log: DailyLog, rate: number | undefined) =>
   formatMoney(estimateElectricityCost(log.electricityUnits, rate));
 
@@ -61,7 +65,7 @@ export const buildDailyLogColumns = (rate: number | undefined, onEdit: (log: Dai
         className: 'w-[15%] text-right font-mono whitespace-nowrap',
         exportValue: (log) => log.machineHours,
       },
-      cell: ({ row }) => formatQuantity(row.original.machineHours, 'hrs'),
+      cell: ({ row }) => counted(row.original.machineHours, 'hr', 'hrs'),
     }),
     helper.accessor('electricityUnits', {
       header: 'Electricity units',
@@ -69,7 +73,7 @@ export const buildDailyLogColumns = (rate: number | undefined, onEdit: (log: Dai
         className: 'w-[16%] text-right font-mono whitespace-nowrap',
         exportValue: (log) => log.electricityUnits,
       },
-      cell: ({ row }) => formatQuantity(row.original.electricityUnits, 'units'),
+      cell: ({ row }) => counted(row.original.electricityUnits, 'unit', 'units'),
     }),
     helper.display({
       id: 'cost',
@@ -131,8 +135,8 @@ export const DailyLogCard = ({
           )}
         </p>
         <p className="mt-1 text-xs text-fg-subtle tabular-nums">
-          {formatQuantity(log.machineHours, 'hrs')} ·{' '}
-          {formatQuantity(log.electricityUnits, 'units')}
+          {counted(log.machineHours, 'hr', 'hrs')} ·{' '}
+          {counted(log.electricityUnits, 'unit', 'units')}
         </p>
         {log.notes && <p className="mt-1 text-xs text-fg-subtle">{log.notes}</p>}
       </div>

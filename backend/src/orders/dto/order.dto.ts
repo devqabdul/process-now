@@ -4,14 +4,11 @@ import {
   ArrayMinSize,
   IsArray,
   IsIn,
-  IsString,
   IsUUID,
-  MaxLength,
-  Min,
   ValidateNested,
 } from 'class-validator';
 import { ListQueryDto, ToArray } from '../../common/dto/list-query.dto.js';
-import { IsAmount, IsName, Optional } from '../../common/validators.js';
+import { IsAmount, IsName, IsText, Optional } from '../../common/validators.js';
 
 export class SelectedOptionDto {
   @IsName(50)
@@ -31,8 +28,7 @@ export class CreateOrderItemDto {
   @Type(() => SelectedOptionDto)
   selectedOptions: SelectedOptionDto[];
 
-  @IsAmount(3)
-  @Min(0.001)
+  @IsAmount(3, 0.001)
   qtyIn: number;
 }
 
@@ -42,8 +38,7 @@ export class CreateOrderDto {
   vendorId: string;
 
   @Optional()
-  @IsString()
-  @MaxLength(500)
+  @IsText(500)
   notes?: string;
 
   @IsArray()

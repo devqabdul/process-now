@@ -1,20 +1,27 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter } from 'react-router';
+import { createMemoryRouter, useLocation } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { http } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { dashboardFixture } from '@api/process-backend/dashboard/dashboard.fixtures';
 import { API, envelope, server } from '@test/server';
+import { shiftIsoDate, todayIso } from '@utils/format/date';
 
 import { DashboardPage } from './dashboard-page';
 
+const LogDate = () => <p>Logging {(useLocation().state as { logDate: string }).logDate}</p>;
+
 const renderDashboard = () => {
-  const router = createMemoryRouter([{ path: '/', Component: DashboardPage }], {
-    initialEntries: ['/'],
-  });
+  const router = createMemoryRouter(
+    [
+      { path: '/', Component: DashboardPage },
+      { path: '/daily-log', Component: LogDate },
+    ],
+    { initialEntries: ['/'] },
+  );
   render(
     <QueryClientProvider client={new QueryClient()}>
       <RouterProvider router={router} />
@@ -62,5 +69,7 @@ describe('DashboardPage', () => {
       'href',
       '/daily-log',
     );
+    await user.click(screen.getByRole('link', { name: 'Add daily log' }));
+    expect(await screen.findByText(`Logging ${shiftIsoDate(todayIso(), -1)}`)).toBeInTheDocument();
   });
 });

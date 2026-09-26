@@ -58,6 +58,7 @@ export const BankStatementPage = () => {
       <PageHeader
         title={account?.name ?? 'Statement'}
         subtitle={`Money in and out, ${period}.`}
+        subtitleOnPhone
         actions={account?.isActive === false ? <Badge tone="neutral">Closed</Badge> : undefined}
       />
 

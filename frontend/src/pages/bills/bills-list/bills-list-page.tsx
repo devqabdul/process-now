@@ -53,6 +53,7 @@ export const BillsListPage = () => {
     isError,
     exportError,
     fileError,
+    preparingId,
     readyToShare,
     confirmShare,
     cancelShare,
@@ -88,6 +89,7 @@ export const BillsListPage = () => {
     onVoid: openVoid,
     onDownload: downloadPdf,
     onShare: sharePdf,
+    preparingId,
   };
 
   const empty = hasFilters ? (

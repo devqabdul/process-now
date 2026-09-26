@@ -382,6 +382,8 @@ async function main() {
     items: {
       serviceTypeId: string;
       billOn: 'in' | 'out';
+      serviceName: string;
+      unit: string;
       selectedOptions: Prisma.InputJsonValue;
       qtyIn: Decimal;
       qtyOut: Decimal | null;
@@ -454,6 +456,8 @@ async function main() {
         return {
           serviceTypeId: st.id,
           billOn: st.billOn,
+          serviceName: st.name,
+          unit: st.unit,
           selectedOptions: picked as unknown as Prisma.InputJsonValue,
           qtyIn,
           qtyOut,
@@ -493,6 +497,7 @@ async function main() {
         companyId,
         vendorId: p.vendorId,
         orderNo: i + 1,
+        numberPrefix: COMPANY.numberPrefix,
         status: p.status,
         receivedAt: p.receivedAt,
         returnedAt: p.returnedAt,
@@ -519,6 +524,9 @@ async function main() {
         companyId,
         orderId: o.id,
         billNo: i + 1,
+        numberPrefix: COMPANY.numberPrefix,
+        companyName: COMPANY.name,
+        gstNo: COMPANY.gstNo,
         subtotal: subtotal.toFixed(2),
         gstAmount: gstAmount?.toFixed(2) ?? null,
         total: total.toFixed(2),

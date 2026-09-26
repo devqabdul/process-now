@@ -121,8 +121,10 @@ interface DataTableProps<T extends RowData> {
 
 const CELL = 'px-4 text-13';
 // A row's ⋮ menu: shrinks to its button and hugs the right edge, the same in every table.
+// Sticky, so a table wider than the screen never starts with its actions scrolled out of view;
+// it takes its row's background so the columns scrolling beneath don't show through.
 export const ACTIONS_COLUMN_ID = 'actions';
-const ACTIONS = 'w-px whitespace-nowrap pr-3 text-right [&>*]:ml-auto';
+const ACTIONS = 'sticky right-0 w-px whitespace-nowrap bg-inherit pr-3 text-right [&>*]:ml-auto';
 const columnClass = (id: string, className?: string) =>
   cn(id === ACTIONS_COLUMN_ID && ACTIONS, className);
 // Last in the merge: a column's cell type (mono, muted, 11px) never restyles its header.
@@ -286,7 +288,10 @@ export const DataTable = <T extends RowData>({
           >
             {loading &&
               Array.from({ length: skeletonRows }, (_, rowIndex) => (
-                <tr key={rowIndex} className="h-14 border-b border-line-subtle last:border-0">
+                <tr
+                  key={rowIndex}
+                  className="h-14 border-b border-line-subtle bg-surface last:border-0"
+                >
                   {visibleColumns.map((column, columnIndex) => (
                     <td
                       key={column.id}
@@ -294,7 +299,7 @@ export const DataTable = <T extends RowData>({
                     >
                       <Skeleton
                         className={columnIndex === 0 ? 'w-3/5' : 'w-4/5'}
-                        style={{ animationDelay: `${rowIndex * 0.08}s` }}
+                        style={{ animationDelay: `${rowIndex * 0.04}s` }}
                       />
                     </td>
                   ))}
@@ -318,7 +323,7 @@ export const DataTable = <T extends RowData>({
                 <tr
                   key={row.id}
                   aria-rowindex={virtualized ? index + 2 : undefined}
-                  className="h-14 border-b border-line-subtle transition-colors duration-150 last:border-0 hover:bg-surface-hover"
+                  className="h-14 border-b border-line-subtle bg-surface transition-colors duration-150 last:border-0 hover:bg-surface-hover"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <td

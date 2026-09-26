@@ -36,7 +36,7 @@ export interface Order {
   notes: string | null;
   vendor: { id: string; name: string; phone: string };
   items: OrderItem[];
-  bill: { id: string; billNo: string; total: string } | null;
+  bill: { id: string; billNo: string; total: string; voidedAt: string | null } | null;
 }
 
 // `q`: vendor name, or an order number in any form ("FN-0012", "0012", "12").

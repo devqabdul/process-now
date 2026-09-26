@@ -287,7 +287,7 @@ export const useOrdersListPage = (): UseOrdersListPageResult => {
     if (!cancelTarget) return;
     const ok = await run(
       () => cancelOrder(cancelTarget.id, reason),
-      `${cancelTarget.orderNo} is cancelled. It stays on the list for the record.`,
+      `${cancelTarget.orderNo} is cancelled. Find it under Status: Cancelled.`,
     );
     if (ok) setCancelTarget(null);
   };
@@ -307,7 +307,12 @@ export const useOrdersListPage = (): UseOrdersListPageResult => {
     setCancelTarget(order);
   };
 
-  const columns = buildOrderColumns({ onStart: start, onReturn: openReturn, onCancel: openCancel });
+  const columns = buildOrderColumns({
+    onStart: start,
+    onReturn: openReturn,
+    onCancel: openCancel,
+    busy: isSubmitting,
+  });
 
   const exportCsv = () =>
     runExport(async () => exportRows(columns, await fetchAllPages(getOrders, filters)));

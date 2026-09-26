@@ -1,10 +1,10 @@
-import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsPassword, IsText } from '../../common/validators.js';
 
 export class LoginDto {
   /** Phone number or email */
-  @IsString()
+  @IsText(254)
   @IsNotEmpty()
-  @MaxLength(254)
   identifier: string;
 
   @IsString()
@@ -19,8 +19,6 @@ export class ChangePasswordDto {
   @MaxLength(72)
   currentPassword: string;
 
-  @IsString()
-  @MinLength(8)
-  @MaxLength(72)
+  @IsPassword()
   newPassword: string;
 }

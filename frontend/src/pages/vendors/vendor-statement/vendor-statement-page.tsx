@@ -70,6 +70,7 @@ export const VendorStatementPage = () => {
       <PageHeader
         title={vendor?.name ?? 'Vendor report'}
         subtitle={`Orders, bills and payments, ${period}.`}
+        subtitleOnPhone
         actions={
           vendor && (
             <>

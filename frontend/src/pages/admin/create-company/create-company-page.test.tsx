@@ -108,8 +108,6 @@ describe('CreateCompanyPage', () => {
     renderPage();
 
     await fillCompanyAndAdmin(user);
-    // Both optional codes arrive prefilled from the name, so typing over one means clearing first.
-    await user.clear(screen.getByLabelText('GST number'));
     await user.type(screen.getByLabelText('GST number'), '27aabcf1234m1z9');
     // Lower case in, upper case out: the prefix prints as WN-0001. Clearing first also
     // proves a typed prefix survives — the suggestion must not type over it.
@@ -132,6 +130,37 @@ describe('CreateCompanyPage', () => {
         email: 'ravi@weavenow.in',
         password: 'sherwani99',
       },
+    });
+  });
+
+  it('never invents a GST number, and leaves empty optional fields out', async () => {
+    created.mockResolvedValue(
+      axiosOk(
+        {
+          id: 'cmp_8',
+          name: 'WeaveNow',
+          numberPrefix: 'WN',
+          gstNo: null,
+          createdAt: '2026-09-20T00:00:00.000Z',
+          isActive: true,
+          admin: { id: 'usr_8', name: 'Ravi Kumar', phone: '9800033333', email: null },
+        },
+        201,
+      ),
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await fillCompanyAndAdmin(user);
+    expect(screen.getByLabelText('GST number')).toHaveValue('');
+    await user.type(screen.getByLabelText('Mobile number'), '9800033333');
+    await user.click(screen.getByRole('button', { name: 'Create company' }));
+
+    await screen.findByText('WeaveNow is on ProcessNow');
+    expect(created).toHaveBeenCalledWith({
+      name: 'WeaveNow',
+      numberPrefix: 'WN',
+      admin: { name: 'Ravi Kumar', phone: '9800033333', password: 'sherwani99' },
     });
   });
 });

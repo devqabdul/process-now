@@ -352,13 +352,13 @@
   --shadow-sheet: var(--pn-shadow-sheet);
   --shadow-focus: 0 0 0 4px var(--pn-focus-ring);
 
-  /* Motion: 150–250ms, one easing curve for entrances */
+  /* Motion: see docs/conventions/design-system.md#motion — user-initiated motion ≤ 300ms. */
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
   --animate-mark-spin: spin 1.6s linear infinite;
-  --animate-rise: rise 0.4s var(--ease-out-expo);
-  --animate-fade-in: fade-in 0.55s ease;
+  --animate-rise: rise 0.28s var(--ease-out-expo);
+  --animate-fade-in: fade-in 0.55s ease-out;
   --animate-pop: pop 0.22s var(--ease-out-expo);
-  --animate-shake: shake 0.4s;
+  --animate-shake: shake 0.3s;
   --animate-modal-in: modal-in 0.24s var(--ease-out-expo);
   --animate-toast-in: toast-in 0.24s var(--ease-out-expo);
   --animate-sheet-in: sheet-in 0.28s var(--ease-out-expo);
@@ -391,7 +391,7 @@
 @keyframes pop {
   from {
     opacity: 0;
-    transform: scale(0.88);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -500,9 +500,13 @@
      every hover and nav change recalculate styles across the whole tree. */
   :root.theme-switching * {
     transition:
-      background-color 0.18s ease,
-      border-color 0.18s ease,
-      color 0.18s ease;
+      background-color 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+  /* Press feedback for discrete controls; menu rows and options stay flat. */
+  button:not(:disabled, [role='menuitem'], [role='option']):active {
+    scale: 0.98;
   }
   a {
     color: var(--pn-link);
@@ -566,6 +570,41 @@
     will-change: transform;
   }
 
+  /* A bottom sheet <dialog>: slides up in (ease-out) and down out (ease-in), backdrop fading with it.
+     allow-discrete keeps it rendered through the exit; without support it simply opens and closes. */
+  .sheet-up {
+    translate: 0 100%;
+    transition:
+      translate 0.2s ease-in,
+      display 0.2s allow-discrete,
+      overlay 0.2s allow-discrete;
+  }
+  .sheet-up[open] {
+    translate: 0 0;
+    transition-duration: 0.28s;
+    transition-timing-function: var(--ease-out-expo);
+  }
+  .sheet-up::backdrop {
+    background: transparent;
+    transition:
+      background-color 0.2s ease-in,
+      display 0.2s allow-discrete,
+      overlay 0.2s allow-discrete;
+  }
+  .sheet-up[open]::backdrop {
+    background: rgba(17, 20, 23, 0.32);
+    transition-duration: 0.28s;
+    transition-timing-function: ease-out;
+  }
+  @starting-style {
+    .sheet-up[open] {
+      translate: 0 100%;
+    }
+    .sheet-up[open]::backdrop {
+      background: transparent;
+    }
+  }
+
   /* SelectField's open list, styled like ui/menu. Desktop pointers only: phones keep the system
      picker, and browsers without base-select keep the native menu — both still a real <select>. */
   .select-picker {
@@ -604,6 +643,11 @@
       .select-picker option:focus-visible {
         background: var(--pn-surface-muted);
         outline: none;
+      }
+      /* The muted fill is ~1.1:1 on the popover; keyboard focus needs a 3:1 ring. */
+      .select-picker option:focus-visible {
+        outline: 2px solid var(--pn-focus);
+        outline-offset: -2px;
       }
       .select-picker option:checked {
         font-weight: 600;

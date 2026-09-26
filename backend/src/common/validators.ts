@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Transform } from 'class-transformer';
 import {
+  IsByteLength,
   IsEmail,
   IsISO8601,
   IsNotEmpty,
@@ -15,6 +16,7 @@ import {
   Max,
   MaxLength,
   Min,
+  MinLength,
   ValidateIf,
 } from 'class-validator';
 import { addDays, isDateString, today } from './dates.js';
@@ -34,6 +36,18 @@ export const IsText = (max: number) =>
   applyDecorators(Transform(whenString((s) => s)), IsString(), MaxLength(max));
 
 /** Trimmed, non-empty string. */
+/** A new password. bcrypt ignores bytes past 72, so the cap is in bytes, not characters. */
+export const IsPassword = () =>
+  applyDecorators(
+    IsString(),
+    MinLength(8),
+    Matches(/\S/, { message: "A password can't be only spaces" }),
+    IsByteLength(0, 72, {
+      message:
+        'Too long: use fewer characters (accented or non-Latin ones count double)',
+    }),
+  );
+
 export const IsName = (max = 100) =>
   applyDecorators(
     Transform(whenString((s) => s.trim())),
@@ -80,10 +94,10 @@ export const MAX_MONEY = 9_999_999_999.99;
 export const MAX_QTY = 999_999_999.999;
 
 /** Non-negative amount with at most `places` decimals, bounded by its column. */
-export const IsAmount = (places = 2) =>
+export const IsAmount = (places = 2, min = 0) =>
   applyDecorators(
     IsNumber({ maxDecimalPlaces: places }),
-    Min(0),
+    Min(min),
     Max(places >= 3 ? MAX_QTY : MAX_MONEY),
   );
 

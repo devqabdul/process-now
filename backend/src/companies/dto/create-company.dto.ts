@@ -2,9 +2,6 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsObject,
-  IsString,
-  MaxLength,
-  MinLength,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -13,6 +10,7 @@ import {
   IsGstNo,
   IsName,
   IsNumberPrefix,
+  IsPassword,
   IsPhone,
   Optional,
 } from '../../common/validators.js';
@@ -30,9 +28,7 @@ export class CompanyAdminDto {
   @IsEmailAddress()
   email?: string;
 
-  @IsString()
-  @MinLength(8)
-  @MaxLength(72)
+  @IsPassword()
   password: string;
 }
 
@@ -58,9 +54,7 @@ export class CreateCompanyDto {
 }
 
 export class ResetAdminPasswordDto {
-  @IsString()
-  @MinLength(8)
-  @MaxLength(72)
+  @IsPassword()
   password: string;
 }
 

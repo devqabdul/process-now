@@ -208,11 +208,8 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
               >
                 <ProcessMark className="size-[74%]" />
               </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-bold tracking-[-0.015em]">
-                  {identity.name}
-                </span>
-                <span className="block truncate text-11 text-fg-subtle">{identity.role}</span>
+              <span className="min-w-0 truncate text-base font-bold tracking-[-0.015em]">
+                {identity.name}
               </span>
             </span>
 
@@ -239,7 +236,7 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
                 ))}
               </div>
 
-              {/* Phones reach both from the account sheet; the tab bar's More covers every screen. */}
+              {/* Phones reach both from the account sheet behind the avatar. */}
               <WorkspaceNotifications className="hidden lg:block" />
               <ThemeToggle className="hidden lg:grid" />
               {/* Also in the account sheet, which is where phones reach it. */}
@@ -291,7 +288,7 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
             id="main"
             ref={mainRef}
             tabIndex={-1}
-            className="flex flex-1 flex-col gap-4.5 px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] outline-none lg:px-6 lg:pt-6 lg:pb-7.5"
+            className="flex flex-1 flex-col gap-3.5 px-4 pt-3.5 pb-[calc(7rem+env(safe-area-inset-bottom))] outline-none lg:gap-4.5 lg:px-6 lg:pt-6 lg:pb-7.5"
           >
             <Suspense fallback={<LoadingMark screen={loadingScreen} />}>
               <Outlet />
@@ -304,16 +301,14 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
         <WorkspaceBottomNav
           tabs={tabs}
           action={action}
-          hasOverflow={overflowItems.length > 0}
+          overflowItems={overflowItems}
           moreActive={overflowItems.some((item) => isUnder(pathname, item.to))}
-          onOpenMore={openMenu}
         />
       )}
 
       <WorkspaceMenuSheet
         ref={menuRef}
         identity={identity}
-        overflowItems={overflowItems}
         layout={layout}
         sidebarCollapsed={collapsed}
       />

@@ -58,6 +58,9 @@ export interface UseVendorsListPageResult {
   save: (values: VendorFormInput) => Promise<{ ok: boolean; message?: string }>;
   saved: string | null;
   dismissSaved: () => void;
+  failed: string | null;
+  dismissFailed: () => void;
+  busyId: string | null;
   // Set right after a retire, so the toast can put it back in one tap.
   undoRetire: (() => void) | null;
   setActive: (vendor: Vendor, isActive: boolean) => void;
@@ -69,6 +72,8 @@ export const useVendorsListPage = (): UseVendorsListPageResult => {
   // state
   const [target, setTarget] = useState<Vendor | 'new' | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [retired, setRetired] = useState<{ item: Vendor; message: string } | null>(null);
   const [columnVisibility, setColumnVisibility] = usePersistedState<ColumnVisibilityState>(
     'pn.table.vendors.columns',
@@ -105,6 +110,7 @@ export const useVendorsListPage = (): UseVendorsListPageResult => {
       if (!isSuccess(response.data)) return { ok: false, message: 'Unable to save this vendor.' };
       await queryClient.invalidateQueries({ queryKey: vendorsKeys.all });
       setTarget(null);
+      setSaved(editing ? `${payload.name} updated.` : `${payload.name} added.`);
       return { ok: true };
     } catch (error) {
       let message = 'Unable to save this vendor right now.';
@@ -122,9 +128,16 @@ export const useVendorsListPage = (): UseVendorsListPageResult => {
   // Retiring a vendor is reversible and touches nothing they've already brought in,
   // so it takes one tap — and the toast offers Undo for a mis-tap.
   const setActive = async (vendor: Vendor, isActive: boolean) => {
+    if (busyId) return;
+    setBusyId(vendor.id);
+    setFailed(null);
     try {
       const response = await updateVendor(vendor.id, { isActive });
-      if (!isSuccess(response.data)) return;
+      if (!isSuccess(response.data)) {
+        setSaved(null);
+        setFailed('Unable to change this vendor right now.');
+        return;
+      }
       await queryClient.invalidateQueries({ queryKey: vendorsKeys.all });
       const message = isActive
         ? `${vendor.name} is active again.`
@@ -134,8 +147,13 @@ export const useVendorsListPage = (): UseVendorsListPageResult => {
     } catch (error) {
       safeApiError(error, {
         context: { page: 'vendors', action: 'setVendorActive' },
-        onError: (err) => setSaved(err.message ?? 'Unable to change this vendor right now.'),
+        onError: (err) => {
+          setSaved(null);
+          setFailed(err.message ?? 'Unable to change this vendor right now.');
+        },
       });
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -147,6 +165,7 @@ export const useVendorsListPage = (): UseVendorsListPageResult => {
   const columns = buildVendorColumns({
     onEdit: openEdit,
     onSetActive: (vendor, isActive) => void setActive(vendor, isActive),
+    busyId,
   });
 
   const exportCsv = () =>
@@ -190,6 +209,9 @@ export const useVendorsListPage = (): UseVendorsListPageResult => {
       setSaved(null);
       setRetired(null);
     },
+    failed,
+    dismissFailed: () => setFailed(null),
+    busyId,
     // Only while the toast still shows the retire; a later message has nothing to undo.
     undoRetire:
       retired && saved === retired.message ? () => void setActive(retired.item, true) : null,

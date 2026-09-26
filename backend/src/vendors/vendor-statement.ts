@@ -10,28 +10,27 @@ export interface StatementRows {
   orders: {
     id: string;
     orderNo: number;
+    numberPrefix: string | null;
     status: string;
     receivedAt: Date;
-    items: {
-      qtyIn: Decimal;
-      serviceType: { name: string; unit: string };
-    }[];
+    items: { qtyIn: Decimal; serviceName: string; unit: string }[];
   }[];
   bills: {
     id: string;
     billNo: number;
+    numberPrefix: string | null;
     total: Decimal;
     voidedAt: Date | null;
     voidReason: string | null;
     issuedAt: Date;
-    order: { id: string; orderNo: number };
+    order: { id: string; orderNo: number; numberPrefix: string | null };
   }[];
   payments: {
     id: string;
     amount: Decimal;
     method: string;
     paidAt: Date;
-    bill: { id: string; billNo: number };
+    bill: { id: string; billNo: number; numberPrefix: string | null };
     bankAccount: { name: string } | null;
   }[];
 }
@@ -41,23 +40,18 @@ export interface StatementRows {
  * voided bill owes nothing, so both leave the balance where it was.
  */
 export const buildStatementEntries = (
-  prefix: string | null,
   opening: Decimal,
   { orders, bills, payments }: StatementRows,
 ) => {
-  const no = (n: number) => formatDocumentNo(prefix, n);
   const lines = [
     ...orders.map((o) => ({
       kind: 'order' as const,
       id: o.id,
       at: o.receivedAt.toISOString(),
-      title: `Order ${no(o.orderNo)} received`,
+      title: `Order ${formatDocumentNo(o.numberPrefix, o.orderNo)} received`,
       // Units differ per service, so quantities are listed, never added up.
       detail: o.items
-        .map(
-          (i) =>
-            `${i.serviceType.name} ${i.qtyIn.toString()} ${i.serviceType.unit}`,
-        )
+        .map((i) => `${i.serviceName} ${i.qtyIn.toString()} ${i.unit}`)
         .join(' · '),
       status: o.status,
       amount: null,
@@ -70,10 +64,10 @@ export const buildStatementEntries = (
       kind: 'bill' as const,
       id: b.id,
       at: b.issuedAt.toISOString(),
-      title: `Bill ${no(b.billNo)}`,
+      title: `Bill ${formatDocumentNo(b.numberPrefix, b.billNo)}`,
       detail: b.voidedAt
         ? `Voided: ${b.voidReason ?? 'no reason given'}`
-        : `For order ${no(b.order.orderNo)}`,
+        : `For order ${formatDocumentNo(b.order.numberPrefix, b.order.orderNo)}`,
       status: b.voidedAt ? 'voided' : 'issued',
       amount: money(b.total),
       orderId: b.order.id,
@@ -86,7 +80,7 @@ export const buildStatementEntries = (
       id: p.id,
       at: p.paidAt.toISOString(),
       title: `Payment · ${p.method}`,
-      detail: `Against bill ${no(p.bill.billNo)}${p.bankAccount ? ` into ${p.bankAccount.name}` : ''}`,
+      detail: `Against bill ${formatDocumentNo(p.bill.numberPrefix, p.bill.billNo)}${p.bankAccount ? ` into ${p.bankAccount.name}` : ''}`,
       status: 'received',
       amount: money(p.amount),
       orderId: null,

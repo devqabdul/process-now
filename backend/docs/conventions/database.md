@@ -109,6 +109,14 @@ ALTER TABLE "users" ADD CONSTRAINT "users_role_company_check"
 The first backs the login rule (see [`auth.md`](./auth.md)); the second guarantees a company admin always
 has a company and a super admin never does.
 
+Nor can it express **partial unique indexes**. An order has at most one live bill, but voiding reopens the
+order and a new bill follows, so uniqueness only holds among unvoided bills
+(`20260928000000_rebill_after_void`):
+
+```sql
+CREATE UNIQUE INDEX "bills_order_id_live_key" ON "bills"("order_id") WHERE "voided_at" IS NULL;
+```
+
 ## Seeding
 
 Seeding is configured in `prisma.config.ts` as `migrations.seed: "tsx prisma/seed.ts"` and runs **only**

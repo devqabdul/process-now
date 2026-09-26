@@ -9,4 +9,10 @@ describe('date formats', () => {
     expect(formatWeekdayDate('2026-09-26')).toBe('Sat, 26 Sep');
     expect(formatCreatedOn('2026-09-01T06:00:00.000Z')).toBe('1 Sep 2026');
   });
+
+  it('dates a timestamp by its IST day, not its UTC one', () => {
+    // 18:31 UTC on the 26th is 00:01 IST on the 27th
+    expect(formatShortDate('2026-09-26T18:31:48.621Z')).toBe('27 Sep');
+    expect(formatShortDate('2026-09-26T09:30:00.000Z')).toBe('26 Sep');
+  });
 });

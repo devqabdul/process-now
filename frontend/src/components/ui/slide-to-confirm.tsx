@@ -35,6 +35,12 @@ export const SlideToConfirm = ({
   onConfirm,
 }: SlideToConfirmProps) => {
   const [value, setValue] = useState(0);
+  const [wasBusy, setWasBusy] = useState(busy);
+  // A failed action ends busy with the knob still at the end; send it back for another try.
+  if (busy !== wasBusy) {
+    setWasBusy(busy);
+    if (!busy) setValue(0);
+  }
   const track = useRef<HTMLDivElement>(null);
   const locked = busy || disabled;
 

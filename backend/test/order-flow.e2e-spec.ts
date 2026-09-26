@@ -188,6 +188,64 @@ describe.skipIf(!HAS_DB)('order → bill → payment (e2e, DB)', () => {
       estimatedCost: '135.00',
       estimatedProfit: '315.00',
     });
+
+    // Bills are snapshots: renaming the company, dropping its GSTIN or prefix, or editing the
+    // service type must never rewrite an invoice already issued.
+    await agent
+      .patch(api('/settings'))
+      .send({ name: 'Renamed Co', gstNo: null, numberPrefix: 'ZZ' })
+      .expect(200);
+    await agent
+      .patch(api(`/service-types/${st.id}`))
+      .send({ name: 'Renamed service', unit: 'kg' })
+      .expect(200);
+    const kept = (await agent.get(api(`/bills/${billId}`)).expect(200)).body
+      .data;
+    expect(kept).toMatchObject({
+      billNo: 'FN-0001',
+      companyName: expect.stringMatching(/^E2E /),
+      gstNo: '27ABCDE1234F1Z5',
+      order: { orderNo: 'FN-0001' },
+    });
+    expect(kept.order.items[0].serviceType).toMatchObject({
+      name: 'Sherwani fusing',
+      unit: 'piece',
+    });
+    const pdf = (await agent.get(api(`/bills/${billId}/pdf`)).expect(200)).body
+      .data;
+    expect(pdf.fileName).toBe('bill-FN-0001.pdf');
+    expect(
+      (await agent.get(api('/dashboard')).expect(200)).body.data.itemsProcessed,
+    ).toEqual([{ unit: 'piece', qty: '15' }]);
+    await agent
+      .patch(api('/settings'))
+      .send({ gstNo: '27ABCDE1234F1Z5', numberPrefix: 'FN' })
+      .expect(200);
+  });
+
+  it("a revoked cookie can't log out the user's newer sessions", async () => {
+    const { company, phone } = await createCompany(prisma);
+    ids.push(company.id);
+    const cookieOf = async () =>
+      (
+        await request(app.getHttpServer())
+          .post(api('/auth/login'))
+          .send({ identifier: phone, password: PASSWORD })
+          .expect(200)
+      ).headers['set-cookie'][0].split(';')[0];
+    const old = await cookieOf();
+    const logout = (cookie: string) =>
+      request(app.getHttpServer())
+        .post(api('/auth/logout'))
+        .set('Cookie', cookie)
+        .expect(200);
+    await logout(old);
+    const current = await cookieOf();
+    await logout(old);
+    await request(app.getHttpServer())
+      .get(api('/auth/me'))
+      .set('Cookie', current)
+      .expect(200);
   });
 
   it('updates one rate without resetting the other', async () => {
@@ -358,6 +416,24 @@ describe.skipIf(!HAS_DB)('order → bill → payment (e2e, DB)', () => {
       .post(api(`/bills/${billId}/void`))
       .send({ reason: 'again' })
       .expect(409);
+
+    // The order is reopened, shows the voided bill, and the corrected return bills again.
+    const reopened = (await agent.get(api(`/orders/${order.id}`)).expect(200))
+      .body.data;
+    expect(reopened).toMatchObject({ status: 'processing', returnedAt: null });
+    expect(reopened.bill.id).toBe(billId);
+    expect(reopened.bill.voidedAt).not.toBeNull();
+    const rebilled = (
+      await agent
+        .post(api(`/orders/${order.id}/return`))
+        .send({ items: [{ orderItemId: order.items[0].id, qtyOut: 1 }] })
+        .expect(200)
+    ).body.data;
+    expect(rebilled.bill.id).not.toBe(billId);
+    expect(rebilled.bill.voidedAt).toBeNull();
+    expect(
+      (await agent.get(api(`/bills/${billId}`)).expect(200)).body.data.status,
+    ).toBe('voided');
   });
 
   it('refuses to void a bill that has payments', async () => {

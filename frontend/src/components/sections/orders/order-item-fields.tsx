@@ -94,7 +94,7 @@ export const OrderItemFields = ({
       {serviceType?.options.map((group) => (
         <fieldset key={group.group} className="mt-3 min-w-0">
           <legend className="mb-label text-xs font-semibold text-fg-secondary">
-            {group.group}
+            {group.group}{' '}
             <span className="ml-1.5 font-normal text-fg-subtle">
               {group.multi ? 'any number' : 'pick one'}
             </span>

@@ -1,11 +1,18 @@
 import {
+  BadRequestException,
   type INestApplication,
   UnprocessableEntityException,
   ValidationPipe,
   type ValidationError,
 } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
-import { json, urlencoded } from 'express';
+import {
+  json,
+  type NextFunction,
+  type Request,
+  type Response,
+  urlencoded,
+} from 'express';
 import helmet from 'helmet';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter.js';
 import { EnvelopeInterceptor } from './common/interceptors/envelope.interceptor.js';
@@ -84,7 +91,17 @@ export function setupApp(app: INestApplication) {
   app.useGlobalInterceptors(new EnvelopeInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
   // Bodies are small; an unbounded one is a cheap way to exhaust memory.
-  app.use(json({ limit: '256kb' }));
+  const parseJson = json({ limit: '256kb' });
+  // Nest turns a parser SyntaxError into a 400 carrying the raw parser text.
+  app.use((req: Request, res: Response, next: NextFunction) =>
+    parseJson(req, res, (err?: { type?: string }) =>
+      next(
+        err?.type === 'entity.parse.failed'
+          ? new BadRequestException('Malformed JSON body')
+          : err,
+      ),
+    ),
+  );
   app.use(urlencoded({ extended: false, limit: '256kb' }));
   app.enableShutdownHooks();
 }

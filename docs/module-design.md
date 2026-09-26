@@ -6,7 +6,7 @@ Based on [problem-statement.md](problem-statement.md). The data model is indepen
 
 1. **Every row belongs to a company.** Every business table has `company_id`. The API takes `company_id` from the logged-in user's token, **never** from the request body. This scoping is what makes it safe to go from 2 to 10+ companies.
 2. **Businesses differ in data, not code.** A new company, service type or price is a row, not a deploy.
-3. **Bills are snapshots.** An order item copies its price, cost, chosen options **and `bill_on`** when it is created, so later edits to a service type never change old bills.
+3. **Bills are snapshots.** An order item copies its price, cost, chosen options, **`bill_on`**, name and unit when it is created, and a bill copies the company's name, GSTIN and number prefix when it is issued, so later edits to a service type or the company never change old bills.
 
 ## Modules
 
@@ -54,6 +54,7 @@ service_types
 
 orders
   id, company_id, vendor_id, order_no
+  number_prefix (nullable) -- snapshot of the company prefix, so FN-0001 stays FN-0001
   status        -- 'received' | 'processing' | 'returned' | 'cancelled'
   received_at, returned_at (nullable), notes
 
@@ -61,12 +62,14 @@ order_items
   id, order_id, service_type_id
   selected_options jsonb  -- snapshot of chosen options
   bill_on                 -- snapshot: editing the service type later must not change this bill
+  service_name, unit      -- snapshots: what the bill prints for this line
   qty_in, qty_out (nullable until returned)
   unit_price, unit_cost   -- snapshots at creation time
   amount                  -- computed at return time
 
 bills
-  id, company_id, order_id (unique), bill_no, subtotal, gst_amount (nullable), total, issued_at
+  id, company_id, order_id (one unvoided bill per order; voiding reopens the order), bill_no, subtotal, gst_amount (nullable), total, issued_at
+  number_prefix, company_name, gst_no -- snapshots of the issuer: an invoice never changes after issue
   amount_paid             -- running total, maintained inside the payment transaction
   voided_at, void_reason  -- a bill raised in error; excluded from dues and the dashboard
 

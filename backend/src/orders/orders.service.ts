@@ -7,12 +7,12 @@ import { Decimal } from '@prisma/client/runtime/client';
 import { BillingService } from '../billing/billing.service.js';
 import { fieldError } from '../common/validators.js';
 import type { OrderStatus, Prisma } from '../generated/prisma/client.js';
-import { companyPrefix } from '../common/company-number.js';
 import {
   formatDocumentNo,
   parseDocumentNo,
 } from '../common/document-number.js';
 import { fitsInMoneyColumn, itemMoney, money } from '../common/money.js';
+import { withSnapshotServiceType } from '../common/order-item.js';
 import {
   listArgs,
   paged,
@@ -26,8 +26,10 @@ import type {
   ReturnOrderDto,
 } from './dto/order.dto.js';
 import { readOptionGroups } from '../common/option-groups.js';
+import { readSettings } from '../common/company-settings.js';
 import {
   billableQty,
+  billTotals,
   lineAmount,
   PricingError,
   priceItem,
@@ -47,35 +49,59 @@ const orderInclude = {
     },
     orderBy: { id: 'asc' },
   },
-  bill: { select: { id: true, billNo: true, total: true } },
+  // The latest bill: after a void it shows as voided until the order is billed again.
+  bills: {
+    select: {
+      id: true,
+      billNo: true,
+      numberPrefix: true,
+      total: true,
+      voidedAt: true,
+    },
+    orderBy: { issuedAt: 'desc' },
+    take: 1,
+  },
 } as const satisfies Prisma.OrderInclude;
 
-type ItemMoney = {
+type ItemView = {
   unitPrice: Prisma.Decimal;
   unitCost: Prisma.Decimal;
   amount: Prisma.Decimal | null;
+  serviceName: string;
+  unit: string;
+  billOn: string;
+  serviceType: object;
 };
 
-/** Numbers carry the company's prefix; money crosses the wire with 2 decimals. */
+/** Numbers carry the prefix they were issued with; money crosses the wire with 2 decimals. */
 const toView = <
   T extends {
     orderNo: number;
-    items?: ItemMoney[];
-    bill?: { billNo: number; total: Prisma.Decimal } | null;
+    numberPrefix: string | null;
+    items?: ItemView[];
+    bills?: {
+      billNo: number;
+      numberPrefix: string | null;
+      total: Prisma.Decimal;
+    }[];
   },
->(
-  order: T,
-  prefix: string | null,
-) => ({
+>({
+  bills,
+  ...order
+}: T) => ({
   ...order,
-  orderNo: formatDocumentNo(prefix, order.orderNo),
-  ...(order.items && { items: order.items.map(itemMoney) }),
-  ...(order.bill && {
-    bill: {
-      ...order.bill,
-      billNo: formatDocumentNo(prefix, order.bill.billNo),
-      total: money(order.bill.total),
-    },
+  orderNo: formatDocumentNo(order.numberPrefix, order.orderNo),
+  ...(order.items && {
+    items: order.items.map((item) => withSnapshotServiceType(itemMoney(item))),
+  }),
+  ...(bills && {
+    bill: bills[0]
+      ? {
+          ...bills[0],
+          billNo: formatDocumentNo(bills[0].numberPrefix, bills[0].billNo),
+          total: money(bills[0].total),
+        }
+      : null,
   }),
 });
 
@@ -118,27 +144,23 @@ export class OrdersService {
       query,
       orderList,
     );
-    const [prefix, orders, total] = await Promise.all([
-      companyPrefix(this.prisma, companyId),
+    const [orders, total] = await Promise.all([
       this.prisma.order.findMany({ ...args, include: orderInclude }),
       this.prisma.order.count({ where: args.where }),
     ]);
     return paged(
-      orders.map((order) => toView(order, prefix)),
+      orders.map((order) => toView(order)),
       total,
       query,
     );
   }
 
   async findOne(companyId: string, id: string) {
-    const [prefix, order] = await Promise.all([
-      companyPrefix(this.prisma, companyId),
-      this.prisma.order.findUniqueOrThrow({
-        where: { id, companyId },
-        include: orderInclude,
-      }),
-    ]);
-    return toView(order, prefix);
+    const order = await this.prisma.order.findUniqueOrThrow({
+      where: { id, companyId },
+      include: orderInclude,
+    });
+    return toView(order);
   }
 
   async create(companyId: string, actor: string, dto: CreateOrderDto) {
@@ -174,6 +196,8 @@ export class OrdersService {
         return {
           serviceTypeId: st.id,
           billOn: st.billOn,
+          serviceName: st.name,
+          unit: st.unit,
           createdBy: actor,
           updatedBy: actor,
           selectedOptions: chosen as unknown as Prisma.InputJsonValue,
@@ -189,6 +213,23 @@ export class OrdersService {
       }
     });
 
+    // Nothing bills more than everything received, so if that fits, any return will;
+    // otherwise the order would be stuck in processing with no way to bill it.
+    const company = await this.prisma.company.findUniqueOrThrow({
+      where: { id: companyId },
+      select: { gstNo: true, settings: true },
+    });
+    const worstCase = billTotals(
+      items.map((it) => lineAmount(it.unitPrice, it.qtyIn)),
+      company.gstNo ? readSettings(company.settings).gstRate : null,
+    );
+    if (!fitsInMoneyColumn(worstCase.total)) {
+      throw fieldError(
+        'items',
+        'This order would bill above the maximum this system can handle',
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       // The UPDATE locks the company row, so concurrent orders get distinct numbers.
       const { nextOrderNo, numberPrefix } = await tx.company.update({
@@ -201,6 +242,7 @@ export class OrdersService {
           companyId,
           vendorId: vendor.id,
           orderNo: nextOrderNo - 1,
+          numberPrefix,
           notes: dto.notes,
           createdBy: actor,
           updatedBy: actor,
@@ -208,7 +250,7 @@ export class OrdersService {
         },
         include: orderInclude,
       });
-      return toView(order, numberPrefix);
+      return toView(order);
     });
   }
 

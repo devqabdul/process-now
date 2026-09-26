@@ -40,6 +40,7 @@ export interface UseServiceTypesListPageResult {
   pickerColumns: PickerColumn[];
   target: ServiceType | 'new' | null;
   saved: string | null;
+  failed: string | null;
   showTable: boolean;
   isLoading: boolean;
   isRefreshing: boolean;
@@ -58,6 +59,7 @@ export interface UseServiceTypesListPageResult {
   openEdit: (serviceType: ServiceType) => void;
   closeDialog: () => void;
   dismissSaved: () => void;
+  dismissFailed: () => void;
   // Set right after a retire, so the toast can put it back in one tap.
   undoRetire: (() => void) | null;
   save: (values: ServiceTypeFormInput) => Promise<{ ok: boolean; message?: string }>;
@@ -76,6 +78,7 @@ export const useServiceTypesListPage = (): UseServiceTypesListPageResult => {
   // state
   const [target, setTarget] = useState<ServiceType | 'new' | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
   const [retired, setRetired] = useState<{ item: ServiceType; message: string } | null>(null);
   const [deleting, setDeleting] = useState<ServiceType | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -140,9 +143,14 @@ export const useServiceTypesListPage = (): UseServiceTypesListPageResult => {
   // Retiring a service only hides it from new orders (past orders keep their price), so it
   // takes one tap — and the toast offers Undo for a mis-tap.
   const setActive = async (serviceType: ServiceType, isActive: boolean) => {
+    setFailed(null);
     try {
       const response = await updateServiceType(serviceType.id, { isActive });
-      if (!isSuccess(response.data)) return;
+      if (!isSuccess(response.data)) {
+        setSaved(null);
+        setFailed('Unable to change this service right now.');
+        return;
+      }
       await queryClient.invalidateQueries({ queryKey: serviceTypesKeys.all });
       const message = isActive
         ? `${serviceType.name} is available for new orders again.`
@@ -152,7 +160,10 @@ export const useServiceTypesListPage = (): UseServiceTypesListPageResult => {
     } catch (error) {
       safeApiError(error, {
         context: { page: 'service-types', action: 'setServiceTypeActive' },
-        onError: (err) => setSaved(err.message ?? 'Unable to change this service right now.'),
+        onError: (err) => {
+          setSaved(null);
+          setFailed(err.message ?? 'Unable to change this service right now.');
+        },
       });
     }
   };
@@ -212,6 +223,7 @@ export const useServiceTypesListPage = (): UseServiceTypesListPageResult => {
     pickerColumns: pickerColumns(columns, columnVisibility),
     target,
     saved,
+    failed,
     showTable,
     isLoading: rows.isLoading,
     isRefreshing: rows.isRefreshing,
@@ -237,6 +249,7 @@ export const useServiceTypesListPage = (): UseServiceTypesListPageResult => {
       setSaved(null);
       setRetired(null);
     },
+    dismissFailed: () => setFailed(null),
     // Only while the toast still shows the retire; a later message has nothing to undo.
     undoRetire:
       retired && saved === retired.message ? () => void setActive(retired.item, true) : null,

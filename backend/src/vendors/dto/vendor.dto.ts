@@ -1,6 +1,6 @@
-import { IsBoolean, IsString, MaxLength } from 'class-validator';
+import { IsBoolean } from 'class-validator';
 import { ListQueryDto } from '../../common/dto/list-query.dto.js';
-import { IsName, IsPhone, Optional } from '../../common/validators.js';
+import { IsName, IsPhone, IsText, Optional } from '../../common/validators.js';
 
 export class CreateVendorDto {
   @IsName()
@@ -10,8 +10,7 @@ export class CreateVendorDto {
   phone: string;
 
   @Optional()
-  @IsString()
-  @MaxLength(500)
+  @IsText(500)
   address?: string;
 }
 
@@ -32,8 +31,7 @@ export class UpdateVendorDto {
   phone?: string;
 
   @Optional()
-  @IsString()
-  @MaxLength(500)
+  @IsText(500)
   address?: string;
 }
 

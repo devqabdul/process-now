@@ -49,6 +49,8 @@ describe.skipIf(!HAS_DB)('bank accounts and expenses (e2e, DB)', () => {
           create: {
             serviceTypeId: st.id,
             billOn: 'out',
+            serviceName: st.name,
+            unit: st.unit,
             qtyIn: 100,
             qtyOut: 100,
             unitPrice: 8,
@@ -64,6 +66,7 @@ describe.skipIf(!HAS_DB)('bank accounts and expenses (e2e, DB)', () => {
           companyId: company.id,
           orderId: order.id,
           billNo: 1,
+          companyName: 'Test company',
           subtotal: 800,
           total: 800,
         },

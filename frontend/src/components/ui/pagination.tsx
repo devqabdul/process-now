@@ -73,7 +73,6 @@ export const Pagination = ({
             aria-label="Previous page"
             disabled={disabled || page <= 1}
             onClick={() => onPageChange(page - 1)}
-            className="disabled:opacity-40"
           >
             <ChevronLeft aria-hidden="true" className="size-4" strokeWidth={2} />
           </IconButton>
@@ -108,7 +107,6 @@ export const Pagination = ({
             aria-label="Next page"
             disabled={disabled || page >= pageCount}
             onClick={() => onPageChange(page + 1)}
-            className="disabled:opacity-40"
           >
             <ChevronRight aria-hidden="true" className="size-4" strokeWidth={2} />
           </IconButton>

@@ -1,5 +1,5 @@
-import { ChevronLeft, Eye, EyeOff, Lock, Smartphone } from 'lucide-react';
-import type { FormEvent } from 'react';
+import { ArrowBigUpDash, ChevronLeft, Eye, EyeOff, Lock, Smartphone } from 'lucide-react';
+import type { FormEvent, KeyboardEvent } from 'react';
 import type { FieldError as RhfFieldError, UseFormRegisterReturn } from 'react-hook-form';
 
 import { Button } from '@components/ui/button';
@@ -13,9 +13,11 @@ interface PasswordStepProps {
   identityShown: string;
   isMobile: boolean;
   showPassword: boolean;
+  capsLock: boolean;
   shake: boolean;
   isSubmitting: boolean;
   onTogglePassword: () => void;
+  onPasswordKey: (event: KeyboardEvent<HTMLInputElement>) => void;
   onBack: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
@@ -26,17 +28,19 @@ export const PasswordStep = ({
   identityShown,
   isMobile,
   showPassword,
+  capsLock,
   shake,
   isSubmitting,
   onTogglePassword,
+  onPasswordKey,
   onBack,
   onSubmit,
 }: PasswordStepProps) => (
-  <form noValidate onSubmit={onSubmit} className="animate-rise [animation-duration:0.36s]">
+  <form noValidate onSubmit={onSubmit} className="animate-rise">
     <button
       type="button"
       onClick={onBack}
-      className="mb-5 flex items-center gap-1.5 text-13 font-semibold text-fg-subtle transition-colors duration-200 hover:text-fg"
+      className="mb-5 flex items-center gap-1.5 text-13 font-semibold text-fg-subtle transition-colors duration-150 hover:text-fg"
     >
       <ChevronLeft className="size-3.5" strokeWidth={2} aria-hidden="true" />
       Back
@@ -99,9 +103,22 @@ export const PasswordStep = ({
         aria-describedby={error ? 'password-error' : undefined}
         className={inputClasses}
         {...field}
+        onKeyDown={onPasswordKey}
+        onKeyUp={onPasswordKey}
       />
     </InputShell>
-    <FieldError id="password-error" message={error?.message} reserve />
+    {/* Shares the reserved error line so the Sign in button doesn't jump. */}
+    {capsLock && !error ? (
+      <p
+        role="status"
+        className="mt-label flex min-h-5 items-center gap-1.5 text-xs text-fg-subtle"
+      >
+        <ArrowBigUpDash aria-hidden="true" className="size-3.5 flex-none" strokeWidth={2} />
+        Caps Lock is on
+      </p>
+    ) : (
+      <FieldError id="password-error" message={error?.message} reserve />
+    )}
 
     <Button type="submit" loading={isSubmitting} className="mt-3.5">
       {isSubmitting ? 'Signing in…' : 'Sign in'}

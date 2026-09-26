@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/client';
-import { companyPrefix } from '../common/company-number.js';
 import { dayRange, today, toDateColumn } from '../common/dates.js';
 import type { DateRangeQueryDto } from '../common/dto/date-range-query.dto.js';
 import { formatDocumentNo } from '../common/document-number.js';
@@ -83,9 +82,8 @@ export class BankAccountsService {
   /** Payments in and expenses out for one account, newest first. */
   async statement(companyId: string, id: string, query: DateRangeQueryDto) {
     const { from, to } = resolveRange(query.from, query.to);
-    const [account, prefix, payments, expenses] = await Promise.all([
+    const [account, payments, expenses] = await Promise.all([
       this.findOne(companyId, id),
-      companyPrefix(this.prisma, companyId),
       this.prisma.payment.findMany({
         where: {
           companyId,
@@ -101,6 +99,7 @@ export class BankAccountsService {
             select: {
               id: true,
               billNo: true,
+              numberPrefix: true,
               order: { select: { vendor: { select: { name: true } } } },
             },
           },
@@ -131,7 +130,7 @@ export class BankAccountsService {
         at: p.paidAt.toISOString(),
         amount: money(p.amount),
         title: p.bill.order.vendor.name,
-        detail: `${formatDocumentNo(prefix, p.bill.billNo)} · ${p.method}`,
+        detail: `${formatDocumentNo(p.bill.numberPrefix, p.bill.billNo)} · ${p.method}`,
         billId: p.bill.id,
       })),
       ...expenses.map((e) => ({

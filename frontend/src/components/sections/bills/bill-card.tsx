@@ -27,6 +27,7 @@ export interface BillActionHandlers {
   onVoid: (bill: Bill) => void;
   onDownload: (bill: Bill) => void;
   onShare: (bill: Bill) => void;
+  preparingId?: string | null;
 }
 
 export const BillActions = ({
@@ -35,7 +36,9 @@ export const BillActions = ({
   onVoid,
   onDownload,
   onShare,
+  preparingId,
 }: { bill: Bill } & BillActionHandlers) => {
+  const preparing = preparingId === bill.id;
   const due = bill.status === 'due';
   // The API refuses to void a bill with payments against it, so the menu doesn't offer it.
   const canVoid = due && Number(bill.amountPaid) === 0;
@@ -56,6 +59,7 @@ export const BillActions = ({
             </MenuItem>
           )}
           <MenuItem
+            disabled={preparing}
             onClick={() => {
               close();
               onDownload(bill);
@@ -67,6 +71,7 @@ export const BillActions = ({
           {/* A voided bill is kept for the record, not sent to the vendor. */}
           {bill.status !== 'voided' && (
             <MenuItem
+              disabled={preparing}
               onClick={() => {
                 close();
                 onShare(bill);
