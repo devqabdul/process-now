@@ -1,5 +1,7 @@
 import { isRouteErrorResponse, useRouteError } from 'react-router';
 
+import { resetApp } from '@lib/app-reset';
+
 const RELOADED_KEY = 'pn.chunkReload';
 
 // A failed chunk import after a deploy means the tab is running an old build. Reload once —
@@ -44,7 +46,8 @@ export const RouteErrorBoundary = () => {
       <div className="w-full max-w-[420px] rounded-16 border border-line bg-surface p-7 shadow-card">
         <h1 className="mb-2 text-xl font-semibold tracking-[-0.02em]">{title}</h1>
         <p className="mb-5 text-sm leading-relaxed text-fg-muted">
-          Refresh the page to try again. If it keeps happening, contact support.
+          Refresh the page to try again. If it keeps happening, reset the app — it drops the saved
+          copy and loads the latest version. You stay signed in.
         </p>
         <button
           type="button"
@@ -52,6 +55,13 @@ export const RouteErrorBoundary = () => {
           className="h-11 rounded-12 bg-primary px-5 text-sm font-semibold text-primary-fg transition-colors duration-200 hover:bg-primary-hover"
         >
           Refresh
+        </button>
+        <button
+          type="button"
+          onClick={() => void resetApp()}
+          className="ml-2 h-11 rounded-12 border border-line px-5 text-sm font-semibold text-fg-secondary transition-colors duration-200 hover:border-line-strong hover:text-fg"
+        >
+          Reset app
         </button>
       </div>
     </main>
