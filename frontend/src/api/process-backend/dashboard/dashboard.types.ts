@@ -37,6 +37,8 @@ export interface Dashboard {
   // From the configured per-unit costs of the day's bills.
   estimatedCost: string;
   estimatedProfit: string;
+  // Recorded expenses for the day; shown on its own, never taken out of the profit.
+  expenses: string;
   pendingOrders: DashboardPendingOrder[];
   // False only for a company that has never created an order (first-run empty state).
   hasOrders: boolean;

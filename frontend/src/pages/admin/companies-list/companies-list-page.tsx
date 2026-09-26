@@ -9,28 +9,46 @@ import {
 import { CompaniesTable } from '@components/sections/admin/companies-table';
 import { DeactivateCompanyDialog } from '@components/sections/admin/deactivate-company-dialog';
 import { ResetPasswordDialog } from '@components/sections/admin/reset-password-dialog';
+import { CardList } from '@components/shared/card-list';
 import { EmptyState } from '@components/shared/empty-state';
 import { LoadError } from '@components/shared/load-error';
 import { PageHeader } from '@components/shared/page-header';
+import { TableToolbar } from '@components/shared/table-toolbar';
 import { Toast } from '@components/shared/toast';
 import { Button, buttonClasses } from '@components/ui/button';
-import { SearchInput } from '@components/ui/search-input';
+import { LoadMore } from '@components/ui/load-more';
+import { Pagination } from '@components/ui/pagination';
 import { SideSheet } from '@components/ui/side-sheet';
 import { useMediaQuery } from '@hooks/use-media-query';
+import { formatCount } from '@utils/format/count';
 
 import { useCompaniesListPage } from './use-companies-list-page';
 
-const SKELETON_CARDS = Array.from({ length: COMPANY_SKELETON_ROWS }, (_, index) => index * 0.08);
-
 export const CompaniesListPage = () => {
   const {
-    search,
-    setSearch,
     rows,
-    totalCount,
+    total,
+    page,
+    pageSize,
+    q,
+    sorting,
+    columns,
+    columnVisibility,
+    pickerColumns,
     showTable,
     isLoading,
+    isRefreshing,
+    isLoadingMore,
     isError,
+    exportError,
+    setPage,
+    setPageSize,
+    setQ,
+    setSorting,
+    setColumnVisibility,
+    toggleColumn,
+    loadMore,
+    exportCsv,
     resetTarget,
     showPassword,
     resetDone,
@@ -65,10 +83,10 @@ export const CompaniesListPage = () => {
     onActivate: activate,
   };
 
-  const empty = search.trim() ? (
+  const empty = q ? (
     <EmptyState
       icon={SearchX}
-      title={`Nothing matches “${search.trim()}”`}
+      title={`Nothing matches “${q}”`}
       description="No company on ProcessNow has that name. Try fewer letters, or clear the search."
       action={
         <Button variant="secondary" size="sm" onClick={clearSearch}>
@@ -82,10 +100,23 @@ export const CompaniesListPage = () => {
       title="No companies yet"
       description="Create the first company — its admin, vendors, service types and orders all hang off this record."
       action={
-        <Link to="/admin/companies/new" className={buttonClasses('primary', 'sm')}>
+        <Link to="/admin/companies/new" className={buttonClasses('secondary', 'sm')}>
           Create the first company
         </Link>
       }
+    />
+  );
+
+  const summary = (
+    <strong className="font-semibold text-fg">{formatCount(total, 'company', 'companies')}</strong>
+  );
+
+  const error = (
+    <LoadError
+      icon={WifiOff}
+      title="Couldn't load the companies"
+      description="The list didn't come back. Check your connection and try again — nothing has been lost."
+      onRetry={retry}
     />
   );
 
@@ -103,47 +134,72 @@ export const CompaniesListPage = () => {
         }
       />
 
-      {isError ? (
-        <LoadError
-          icon={WifiOff}
-          title="Couldn't load the companies"
-          description="The list didn't come back. Check your connection and try again — nothing has been lost."
-          onRetry={retry}
+      <TableToolbar
+        rowCount={total}
+        search={q}
+        onSearchChange={setQ}
+        searchLabel="Search companies by name"
+        searchPlaceholder="Search companies…"
+        columns={pickerColumns}
+        onToggleColumn={toggleColumn}
+        onExport={exportCsv}
+      />
+      {exportError && (
+        <p role="alert" className="text-13 text-danger-strong">
+          {exportError}
+        </p>
+      )}
+
+      {showTable ? (
+        <CompaniesTable
+          columns={columns}
+          rows={rows}
+          loading={isLoading}
+          refreshing={isRefreshing}
+          error={isError ? error : undefined}
+          empty={empty}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          summary={summary}
+          footer={
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          }
         />
       ) : (
-        <>
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            label="Search companies by name"
-            placeholder="Search companies…"
-            className="lg:max-w-xs"
-          />
-
-          {/* Below md a wide table would scroll sideways, so the same rows become cards. */}
-          {showTable ? (
-            <CompaniesTable rows={rows} loading={isLoading} empty={empty} {...rowActions} />
-          ) : (
-            <ul className="flex flex-col gap-2.5">
-              {isLoading
-                ? SKELETON_CARDS.map((delay) => <CompanyCardSkeleton key={delay} delay={delay} />)
-                : rows.map((company) => (
-                    <CompanyCard key={company.id} company={company} {...rowActions} />
-                  ))}
-              {!isLoading && rows.length === 0 && (
-                <li className="rounded-14 border border-line-input">{empty}</li>
-              )}
-            </ul>
-          )}
-
-          {/* Always mounted: a live region has to exist before the count it announces changes. */}
-          <p role="status" className="text-[11.5px] text-fg-subtle empty:sr-only">
-            {!isLoading && rows.length > 0
-              ? `Showing ${rows.length} of ${totalCount} ${totalCount === 1 ? 'company' : 'companies'}.`
-              : null}
-          </p>
-        </>
+        <CardList
+          items={rows}
+          rowKey={(company) => company.id}
+          renderItem={(company) => <CompanyCard company={company} {...rowActions} />}
+          label="Companies on ProcessNow"
+          loading={isLoading}
+          skeleton={<CompanyCardSkeleton />}
+          skeletonCount={COMPANY_SKELETON_ROWS}
+          error={isError ? error : undefined}
+          empty={empty}
+          summary={summary}
+          footer={
+            <LoadMore
+              shown={rows.length}
+              total={total}
+              loading={isLoadingMore}
+              onLoadMore={loadMore}
+            />
+          }
+        />
       )}
+
+      {/* Always mounted: a live region has to exist before the count it announces changes. */}
+      <p role="status" className="sr-only">
+        {!isLoading && !isError ? `${formatCount(total, 'company', 'companies')} found.` : null}
+      </p>
 
       <SideSheet
         open={!!outlet}

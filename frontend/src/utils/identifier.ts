@@ -34,16 +34,16 @@ export const isValidEmail = (raw: string) => EMAIL_PATTERN.test(raw.trim());
 
 export const isValidMobile = (raw: string) => toMobileDigits(raw).length === 10;
 
-export const isValidIdentifier = (raw: string) => {
-  const kind = detectIdentifierKind(raw);
+// `kind` is what the user picked; left out, it is guessed from the characters typed.
+export const isValidIdentifier = (raw: string, kind = detectIdentifierKind(raw)) => {
   if (kind === 'mobile') return isValidMobile(raw);
   if (kind === 'email') return isValidEmail(raw);
   return false;
 };
 
 // The value the API receives: lower-cased email or a bare 10-digit mobile number.
-export const normalizeIdentifier = (raw: string) =>
-  detectIdentifierKind(raw) === 'mobile' ? toMobileDigits(raw) : raw.trim().toLowerCase();
+export const normalizeIdentifier = (raw: string, kind = detectIdentifierKind(raw)) =>
+  kind === 'mobile' ? toMobileDigits(raw) : raw.trim().toLowerCase();
 
-export const displayIdentifier = (raw: string) =>
-  detectIdentifierKind(raw) === 'mobile' ? `+91 ${toMobileDigits(raw)}` : raw.trim();
+export const displayIdentifier = (raw: string, kind = detectIdentifierKind(raw)) =>
+  kind === 'mobile' ? `+91 ${toMobileDigits(raw)}` : raw.trim();

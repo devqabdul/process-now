@@ -45,6 +45,8 @@ describe('DashboardPage', () => {
     expect(screen.getByText('₹58,400')).toBeInTheDocument();
     expect(screen.getByText('Estimated profit')).toBeInTheDocument();
     expect(screen.getByText('₹21,350')).toBeInTheDocument();
+    // Its own tile: expenses are never taken out of the estimated profit.
+    expect(screen.getByText('₹1,850')).toBeInTheDocument();
     expect(screen.getByText('Rajwadi Creations')).toBeInTheDocument();
   });
 

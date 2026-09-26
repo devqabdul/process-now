@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
 import { LetterTile } from '@components/ui/avatar';
 import { DataTable, type DataTableFeatures } from '@components/ui/data-table';
@@ -16,13 +16,13 @@ import {
 
 const helper = createColumnHelper<DataTableFeatures, CompanyRow>();
 
-const buildColumns = (actions: CompanyActionHandlers) =>
+// Column ids that sort are the API's sort keys: name, createdAt.
+export const buildCompanyColumns = (actions: CompanyActionHandlers) =>
   helper.columns([
     helper.accessor('name', {
       header: 'Company',
       enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-[32%]' },
+      meta: { className: 'w-[32%]', hideable: false, exportValue: (company) => company.name },
       cell: ({ row }) => (
         <span className="flex items-center gap-2.5">
           <LetterTile name={row.original.name} />
@@ -34,53 +34,49 @@ const buildColumns = (actions: CompanyActionHandlers) =>
     helper.display({
       id: 'gst',
       header: 'GST number',
-      meta: { className: 'w-[22%]' },
+      meta: { className: 'w-[22%]', exportValue: (company) => company.gstNo },
       cell: ({ row }) => <GstMarker gstNo={row.original.gstNo} />,
     }),
     helper.display({
       id: 'admin',
       header: 'Company admin',
+      meta: { exportValue: (company) => company.admin.name },
       cell: ({ row }) => (
         <span className="block min-w-0">
           <span className="block truncate font-medium">{row.original.admin.name}</span>
-          <span className="block truncate text-[11.5px] text-fg-subtle">
+          <span className="block truncate text-xs text-fg-subtle">
             <AdminContact admin={row.original.admin} />
           </span>
         </span>
       ),
     }),
-    // Sorts on the raw ISO timestamp, which orders chronologically as text; the cell shows the
-    // formatted date the controller hook built.
     helper.accessor('createdAt', {
-      id: 'created',
       header: 'Created',
       enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-[18%] font-mono text-[11px] text-fg-subtle whitespace-nowrap' },
+      meta: {
+        className: 'w-[18%] text-11 text-fg-subtle whitespace-nowrap tabular-nums',
+        exportValue: (company) => company.createdAt,
+      },
       cell: ({ row }) => row.original.createdOn,
     }),
     helper.display({
       id: 'actions',
       header: '',
-      meta: { className: 'w-12' },
+      meta: { label: 'Actions', hideable: false },
       cell: ({ row }) => <CompanyActions company={row.original} {...actions} />,
     }),
   ]);
 
-interface CompaniesTableProps extends CompanyActionHandlers {
-  rows: CompanyRow[];
-  loading: boolean;
-  empty: ReactNode;
-}
+type CompaniesTableProps = Omit<
+  ComponentProps<typeof DataTable<CompanyRow>>,
+  'label' | 'rowKey' | 'skeletonRows'
+>;
 
-export const CompaniesTable = ({ rows, loading, empty, ...actions }: CompaniesTableProps) => (
+export const CompaniesTable = (props: CompaniesTableProps) => (
   <DataTable
-    columns={buildColumns(actions)}
-    rows={rows}
-    rowKey={(company) => company.id}
+    {...props}
     label="Companies on ProcessNow"
-    loading={loading}
+    rowKey={(company) => company.id}
     skeletonRows={COMPANY_SKELETON_ROWS}
-    empty={empty}
   />
 );

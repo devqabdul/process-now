@@ -20,7 +20,7 @@ export const Avatar = ({ name, size = 'md', className }: AvatarProps) => (
     aria-hidden="true"
     className={cn(
       'grid flex-none place-items-center rounded-full bg-linear-135 from-brand-line to-brand-bg font-semibold text-brand-fg',
-      size === 'lg' ? 'size-9.5 text-[12.5px]' : 'size-8 text-[11.5px]',
+      size === 'lg' ? 'size-9.5 text-13' : 'size-8 text-xs',
       className,
     )}
   >
@@ -59,7 +59,7 @@ export const LetterTile = ({ name, tone, size = 'md', className }: LetterTilePro
     aria-hidden="true"
     className={cn(
       'grid flex-none place-items-center font-bold text-brand-fg',
-      size === 'sm' ? 'size-5 rounded-6 text-[9.5px]' : 'size-7 rounded-9 text-[11.5px]',
+      size === 'sm' ? 'size-5 rounded-6 text-11' : 'size-7 rounded-9 text-xs',
       TONES[tone ?? toneFor(name)],
       className,
     )}

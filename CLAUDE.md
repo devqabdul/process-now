@@ -21,7 +21,7 @@ ProcessNow — order, billing and daily-production tracking for job-work busines
 
 **Bills are snapshots.** An order item copies its price and cost when it is created, so editing a service type never rewrites old bills.
 
-**Don't invent data.** A count, a badge or a metric with nothing behind it does not ship — an honest empty state does. The notifications tray and the company switcher are the remaining placeholders; each carries a `TODO(api)` comment rather than a made-up number.
+**Don't invent data.** A count, a badge or a metric with nothing behind it does not ship — an honest empty state does. The notifications tray is the remaining placeholder; it carries a `TODO(api)` comment rather than a made-up number.
 
 **Say what is decided and what is open.** The plan docs separate Decisions from Open questions. Hosting, for instance, is still open; don't write code or docs that assume it.
 

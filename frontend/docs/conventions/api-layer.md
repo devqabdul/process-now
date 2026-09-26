@@ -10,7 +10,8 @@ src/api/process-backend/
   types.ts              ApiEnvelope<T>, NormalizedError, ApiErrorType
   safe-api-error.ts     isSuccess, normalizeError, safeApiError
   unwrap.ts             envelope → payload; the seam every query hook goes through
-  common.types.ts       PageQuery — the cursor-paging contract
+  common.types.ts       ListParams + Paged<T> — the list contract
+  list-query.ts         listQueries, usePagedList, fetchAllPages — paged lists
   index.ts              re-exports the helpers above
   <domain>/             <domain>.types.ts, <domain>-service.ts,
                         use-<domain>-queries.ts, index.ts
@@ -59,8 +60,8 @@ A non-2xx never reaches it — axios rejects first. What it catches is a **2xx c
 which it throws on so React Query shows an error state instead of rendering `undefined`. Pages, by
 contrast, guard with `isSuccess` themselves, because they call the service directly.
 
-`common.types.ts` holds the other cross-domain contract: `PageQuery` (`limit?`, `cursor?`), where
-the cursor is the last row's id. Every list endpoint takes it.
+`common.types.ts` holds the other cross-domain contract, the one every list endpoint shares — see
+[Paged lists](#paged-lists).
 
 ## Guard on the negation
 
@@ -127,6 +128,71 @@ export const useDashboard = (date: string) => useQuery(dashboardKeys.detail(date
 Invalidate by prefix through the factory:
 `queryClient.invalidateQueries({ queryKey: companiesKeys.all })`.
 
+## Paged lists
+
+Every list endpoint (`/vendors`, `/service-types`, `/orders`, `/bills`, `/expenses`,
+`/admin/companies`) takes `ListParams` and answers `Paged<T>`:
+
+```ts
+interface ListParams {
+  page: number;
+  pageSize: number;
+  q?: string;
+  sort?: string;
+}
+interface Paged<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+```
+
+`pageSize` is 15, 25, 50 or 100; `sort` is one of the endpoint's keys, `-` prefixed for
+descending — an unknown key is a 422, so a column only sorts when its id **is** an API sort key.
+The domain's `XQuery` extends `ListParams` with its filters; an array filter (`status: OrderStatus[]`)
+goes out as a repeated param (`status=a&status=b`) because `axios.ts` sets
+`paramsSerializer: { indexes: null }`. `/expenses` answers `Paged<Expense> & { sum }`, the money
+total over every matching row.
+
+`listQueries(root, getThings)` (`list-query.ts`) gives a domain its two list factories, spread
+into the key factory so they sit under the domain's root key and `xKeys.all` still invalidates
+them:
+
+```ts
+export const ordersKeys = {
+  all: ['orders'] as const,
+  ...listQueries(['orders'], getOrders),
+  detail: (id: string) => queryOptions({ … }),
+};
+```
+
+| Factory                  | Key                          | For                                                                                                                                                            |
+| ------------------------ | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `xKeys.list(params)`     | `[root, 'list', params]`     | one page — the desktop table. `placeholderData: keepPreviousData`, so a page/sort/filter change dims the old rows (`refreshing`) instead of flashing skeletons |
+| `xKeys.infinite(params)` | `[root, 'infinite', params]` | phone cards + Load more. `initialPageParam: 1`, `getNextPageParam` stops once `page * pageSize >= total`                                                       |
+
+A list screen doesn't call both: `usePagedList(xKeys, params, showTable, setPage)` enables only
+the one the layout shows and returns `items`, `total`, `data` (the first page's envelope, for
+`sum`), `isLoading`, `isRefreshing`, `isError`, `isLoadingMore`, `loadMore` and `retry`. A page
+left empty by a delete (page 4 of 3) calls `setPage` with the last real page.
+
+A select that needs "every" vendor or service type asks for one page of 100
+(`useVendors({ page: 1, pageSize: MAX_PAGE_SIZE, sort: 'name' })`) and reads `.items`; past 100
+it needs a search, and the call site says so.
+
+**CSV export is a one-off action, not a query**: `fetchAllPages(getThings, filters)` pages through
+the service 100 rows at a time until it has `total`, with the same `q`, `sort` and filters as the
+screen. The controller hook hands the rows to `exportRows(columns, rows)` through
+`useCsvExport(name)` (`src/hooks/`), which downloads `<name>-YYYY-MM-DD.csv` and keeps a failure
+to show under the toolbar.
+
+The page, page size, `q`, sort and filters live in the **URL**, through `useListParams(sortKeys,
+defaultSort)` (`src/hooks/use-list-params.ts`): a refresh or Back keeps them, a hand-edited value
+falls back to the default instead of a 422, any change but a page turn resets to page 1, and
+defaults stay out of the URL. `/orders?vendorId=…` is how the header's vendor quick-jump opens
+one vendor's orders.
+
 ## Query vs direct call
 
 | Kind of call                                         | How                                                                              |
@@ -176,5 +242,5 @@ root. The rejection is re-thrown either way, so a caller's own `catch` still run
 
 ## What is still a placeholder
 
-Two UI shells carry `TODO(api)` — the notifications panel and the company switcher. Run
-`grep -rn "TODO(api)" src/` for the current list rather than trusting a number here.
+One UI shell carries `TODO(api)` — the notifications panel. Run `grep -rn "TODO(api)" src/` for
+the current list rather than trusting a number here.

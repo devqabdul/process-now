@@ -7,7 +7,7 @@ import { http } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { COMPANIES } from '@api/process-backend/companies/companies.fixtures';
-import { API, envelope, server } from '@test/server';
+import { API, envelope, paged, server } from '@test/server';
 
 import { CompaniesListPage } from './companies-list-page';
 
@@ -34,7 +34,7 @@ describe('CompaniesListPage — change admin password', () => {
     const user = userEvent.setup();
     const sent = vi.fn();
     server.use(
-      http.get(`${API}/admin/companies`, () => envelope(COMPANIES)),
+      http.get(`${API}/admin/companies`, () => envelope(paged(COMPANIES))),
       http.patch(`${API}/admin/companies/:id/admin-password`, async ({ request, params }) => {
         sent({ id: params.id, body: await request.json() });
         return envelope({ changed: true, admin: 'Asha Rao' });
@@ -59,7 +59,7 @@ describe('CompaniesListPage — change admin password', () => {
     const user = userEvent.setup();
     const sent = vi.fn();
     server.use(
-      http.get(`${API}/admin/companies`, () => envelope(COMPANIES)),
+      http.get(`${API}/admin/companies`, () => envelope(paged(COMPANIES))),
       http.patch(`${API}/admin/companies/:id/admin-password`, () => {
         sent();
         return envelope({ changed: true, admin: 'Asha Rao' });
@@ -81,7 +81,13 @@ describe('CompaniesListPage — change admin password', () => {
 
 describe('CompaniesListPage', () => {
   beforeEach(() => {
-    server.use(http.get(`${API}/admin/companies`, () => envelope(COMPANIES)));
+    // The API filters by `q`; the page only passes it through.
+    server.use(
+      http.get(`${API}/admin/companies`, ({ request }) => {
+        const q = new URL(request.url).searchParams.get('q')?.toLowerCase() ?? '';
+        return envelope(paged(COMPANIES.filter((c) => c.name.toLowerCase().includes(q))));
+      }),
+    );
   });
 
   it('lists the companies on the platform', async () => {
@@ -94,17 +100,22 @@ describe('CompaniesListPage', () => {
     expect(screen.getAllByText('No GST').length).toBeGreaterThan(0);
   });
 
-  it('keeps a live region that announces the visible count', async () => {
+  it('keeps a live region that announces the matching count', async () => {
     const user = userEvent.setup();
     renderList();
 
     // The region is mounted while the list loads, so the first count is an update, not a new node.
     const status = screen.getByRole('status');
     await screen.findAllByText('FuseNow', undefined, { timeout: 3000 });
-    expect(status).toHaveTextContent('Showing 5 of 5 companies.');
+    expect(status).toHaveTextContent('5 companies found.');
 
-    await user.type(screen.getByLabelText('Search companies by name'), 'crush');
-    expect(status).toHaveTextContent('Showing 1 of 5 companies.');
+    // Search sits behind its icon button until opened.
+    await user.click(screen.getByRole('button', { name: 'Search companies by name' }));
+    await user.type(
+      await screen.findByRole('searchbox', { name: 'Search companies by name' }),
+      'crush',
+    );
+    await waitFor(() => expect(status).toHaveTextContent('1 company found.'));
   });
 
   it('filters by company name and offers a way out of an empty search', async () => {
@@ -112,17 +123,25 @@ describe('CompaniesListPage', () => {
     renderList();
     await screen.findAllByText('FuseNow', undefined, { timeout: 3000 });
 
-    await user.type(screen.getByLabelText('Search companies by name'), 'crush');
+    // Search sits behind its icon button until opened.
+    await user.click(screen.getByRole('button', { name: 'Search companies by name' }));
+    await user.type(
+      await screen.findByRole('searchbox', { name: 'Search companies by name' }),
+      'crush',
+    );
 
+    await waitFor(() => expect(screen.queryByText('FuseNow')).not.toBeInTheDocument());
     expect(screen.getAllByText('CrushNow').length).toBeGreaterThan(0);
-    expect(screen.queryByText('FuseNow')).not.toBeInTheDocument();
 
-    await user.clear(screen.getByLabelText('Search companies by name'));
-    await user.type(screen.getByLabelText('Search companies by name'), 'zzz');
+    await user.clear(await screen.findByRole('searchbox', { name: 'Search companies by name' }));
+    await user.type(
+      await screen.findByRole('searchbox', { name: 'Search companies by name' }),
+      'zzz',
+    );
 
-    expect(screen.getAllByText('Nothing matches “zzz”').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Nothing matches “zzz”')).length).toBeGreaterThan(0);
     await user.click(screen.getAllByRole('button', { name: 'Show all companies' })[0]!);
-    expect(screen.getAllByText('FuseNow').length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('FuseNow')).length).toBeGreaterThan(0);
   });
 });
 
@@ -137,7 +156,7 @@ describe('CompaniesListPage — deactivate a company', () => {
     const user = userEvent.setup();
     const sent = vi.fn();
     server.use(
-      http.get(`${API}/admin/companies`, () => envelope(COMPANIES)),
+      http.get(`${API}/admin/companies`, () => envelope(paged(COMPANIES))),
       http.patch(`${API}/admin/companies/:id`, async ({ request, params }) => {
         sent({ id: params.id, body: await request.json() });
         return envelope({ ...COMPANIES[0], isActive: false });
@@ -168,7 +187,7 @@ describe('CompaniesListPage — deactivate a company', () => {
     const sent = vi.fn();
     const suspended = COMPANIES.find((company) => !company.isActive);
     server.use(
-      http.get(`${API}/admin/companies`, () => envelope(COMPANIES)),
+      http.get(`${API}/admin/companies`, () => envelope(paged(COMPANIES))),
       http.patch(`${API}/admin/companies/:id`, async ({ request }) => {
         sent(await request.json());
         return envelope({ ...suspended, isActive: true });

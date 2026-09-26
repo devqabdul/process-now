@@ -13,6 +13,7 @@ import {
   CurrentUser,
 } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { DateRangeQueryDto } from '../common/dto/date-range-query.dto.js';
 import { ParseIdPipe } from '../common/validators.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import {
@@ -39,6 +40,16 @@ export class VendorsController {
     @Param('id', new ParseIdPipe('id')) id: string,
   ) {
     return this.vendors.findOne(companyId, id);
+  }
+
+  /** Orders, bills and payments in a window, with the amount owed after each */
+  @Get(':id/statement')
+  statement(
+    @CompanyId() companyId: string,
+    @Param('id', new ParseIdPipe('id')) id: string,
+    @Query() query: DateRangeQueryDto,
+  ) {
+    return this.vendors.statement(companyId, id, query);
   }
 
   @Post()

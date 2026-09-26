@@ -2,21 +2,23 @@ import {
   Building,
   ClipboardList,
   House,
+  Landmark,
   type LucideIcon,
   NotebookPen,
   Plus,
   ReceiptText,
   Settings,
-  Store,
+  WalletMinimal,
   Wrench,
+  Truck,
 } from 'lucide-react';
 
 export interface NavItem {
   label: string;
   to: string;
   icon: LucideIcon;
-  // Bottom bar on phones: 'tab' gets its own tab, 'action' the raised centre button,
-  // anything else moves into the "More" sheet.
+  // Bottom bar on phones: 'tab' gets its own tab, 'action' the raised centre button (and no
+  // desktop menu entry: it opens a drawer on a page), anything else moves into the "More" sheet.
   mobile?: 'tab' | 'action';
   mobileLabel?: string;
   // Exact match only; needed when another menu path starts with this one.
@@ -44,10 +46,12 @@ export const COMPANY_ADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Dashboard', to: '/', icon: House, mobile: 'tab', mobileLabel: 'Home', end: true },
       { label: 'Orders', to: '/orders', icon: ClipboardList, mobile: 'tab', end: true },
-      { label: 'New order', to: '/orders/new', icon: Plus, mobile: 'action', mobileLabel: 'New' },
+      { label: 'New order', to: '/orders?new=1', icon: Plus, mobile: 'action', mobileLabel: 'New' },
       { label: 'Bills', to: '/bills', icon: ReceiptText, mobile: 'tab' },
-      { label: 'Vendors', to: '/vendors', icon: Store },
+      { label: 'Vendors', to: '/vendors', icon: Truck },
       { label: 'Service types', to: '/service-types', icon: Wrench },
+      { label: 'Bank', to: '/bank', icon: Landmark },
+      { label: 'Expenses', to: '/expenses', icon: WalletMinimal },
       { label: 'Daily log', to: '/daily-log', icon: NotebookPen },
       { label: 'Settings', to: '/settings', icon: Settings },
     ],

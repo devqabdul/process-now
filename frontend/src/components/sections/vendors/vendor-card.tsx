@@ -1,4 +1,5 @@
 import { Pencil, Power, PowerOff } from 'lucide-react';
+import { Link } from 'react-router';
 
 import type { Vendor } from '@api/process-backend/vendors';
 import { LetterTile } from '@components/ui/avatar';
@@ -60,43 +61,44 @@ export const VendorActions = ({
 );
 
 export const VendorCard = ({ vendor, ...actions }: { vendor: Vendor } & VendorActionHandlers) => (
-  <li>
-    <Card className="p-3.5">
-      <div className="flex items-start gap-2.75">
-        <LetterTile name={vendor.name} />
-        <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-1.5">
-            <span className="truncate text-sm font-semibold">{vendor.name}</span>
-            {vendor.isActive === false && <Badge tone="neutral">Inactive</Badge>}
-          </p>
-          <p className="mt-1 text-[11.5px] whitespace-nowrap text-fg-subtle">
-            {displayIdentifier(vendor.phone)}
-          </p>
-          {vendor.address && <p className="mt-1 text-[11.5px] text-fg-subtle">{vendor.address}</p>}
-        </div>
-        <VendorActions vendor={vendor} {...actions} />
+  <Card className="p-3.5">
+    <div className="flex items-start gap-2.75">
+      <LetterTile name={vendor.name} />
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-1.5">
+          <Link
+            to={`/vendors/${vendor.id}`}
+            className="truncate text-sm font-semibold hover:text-link hover:underline"
+          >
+            {vendor.name}
+          </Link>
+          {vendor.isActive === false && <Badge tone="neutral">Inactive</Badge>}
+        </p>
+        <p className="mt-1 text-xs whitespace-nowrap text-fg-subtle">
+          {displayIdentifier(vendor.phone)}
+        </p>
+        {vendor.address && <p className="mt-1 text-xs text-fg-subtle">{vendor.address}</p>}
       </div>
-    </Card>
-  </li>
+      <VendorActions vendor={vendor} {...actions} />
+    </div>
+  </Card>
 );
 
 export const VendorCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
   const style = { animationDelay: `${delay}s` };
   return (
-    <li>
-      <Card className="p-3.5">
-        <div className="flex items-start gap-2.75">
-          <Skeleton className="size-7 flex-none rounded-9" style={style} />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">
-              <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
-            </p>
-            <p className="mt-1">
-              <Skeleton className="inline-block h-2.25 w-1/3" style={style} />
-            </p>
-          </div>
+    <Card className="p-3.5">
+      <div className="flex items-start gap-2.75">
+        <Skeleton className="size-7 flex-none rounded-9" style={style} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">
+            <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
+          </p>
+          <p className="mt-1">
+            <Skeleton className="inline-block h-2.25 w-1/3" style={style} />
+          </p>
         </div>
-      </Card>
-    </li>
+      </div>
+    </Card>
   );
 };

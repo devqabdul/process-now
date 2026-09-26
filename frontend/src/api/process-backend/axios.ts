@@ -8,6 +8,8 @@ export const http = axios.create({
   baseURL: env.VITE_API_BASE_URL,
   withCredentials: true,
   timeout: 15_000,
+  // Array filters repeat the key (`status=a&status=b`), which is what the API parses.
+  paramsSerializer: { indexes: null },
 });
 
 // A 401 means the cookie expired or the session was revoked. The interceptor can't

@@ -1,4 +1,4 @@
-import type { PageQuery } from '../common.types';
+import type { ListParams } from '../common.types';
 import type { BillOn } from '../service-types';
 
 export type OrderStatus = 'received' | 'processing' | 'returned' | 'cancelled';
@@ -39,12 +39,12 @@ export interface Order {
   bill: { id: string; billNo: string; total: string } | null;
 }
 
-export interface OrdersQuery extends PageQuery {
-  // Cancelled orders are hidden unless asked for by status.
-  status?: OrderStatus;
-  vendorId?: string;
-  // Vendor name, or an order number in any form: "FN-0012", "0012", "12".
-  q?: string;
+// `q`: vendor name, or an order number in any form ("FN-0012", "0012", "12").
+// Sort: receivedAt (default -receivedAt), orderNo, vendor.
+export interface OrdersQuery extends ListParams {
+  // Any of these; cancelled orders are hidden unless asked for.
+  status?: OrderStatus[];
+  vendorId?: string[];
 }
 
 /** No prices: the server computes them from the service type. */

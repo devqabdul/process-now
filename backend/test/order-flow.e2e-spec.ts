@@ -161,8 +161,12 @@ describe.skipIf(!HAS_DB)('order → bill → payment (e2e, DB)', () => {
     ).body.data;
     expect(paid).toMatchObject({ amountDue: '0.00', status: 'paid' });
     expect(
-      (await agent.get(api('/bills?status=due')).expect(200)).body.data,
+      (await agent.get(api('/bills?status=due')).expect(200)).body.data.items,
     ).toEqual([]);
+    const paidOrDue = (
+      await agent.get(api('/bills?status=due&status=paid')).expect(200)
+    ).body.data.items;
+    expect(paidOrDue.map((b: { id: string }) => b.id)).toContain(billId);
 
     await agent
       .put(api(`/daily-logs/${today()}`))
@@ -285,8 +289,14 @@ describe.skipIf(!HAS_DB)('order → bill → payment (e2e, DB)', () => {
     ).body.data;
     expect(cancelled.status).toBe('cancelled');
 
-    const list = (await agent.get(api('/orders')).expect(200)).body.data;
+    const list = (await agent.get(api('/orders')).expect(200)).body.data.items;
     expect(list.map((o: { id: string }) => o.id)).not.toContain(order.id);
+    const withCancelled = (
+      await agent
+        .get(api('/orders?status=received&status=cancelled'))
+        .expect(200)
+    ).body.data.items;
+    expect(withCancelled.map((o: { id: string }) => o.id)).toContain(order.id);
     expect(
       (await agent.get(api('/dashboard')).expect(200)).body.data
         .pendingOrdersCount,
@@ -386,33 +396,62 @@ describe.skipIf(!HAS_DB)('order → bill → payment (e2e, DB)', () => {
   });
 
   it('finds an order by its printed number', async () => {
-    const [order] = (await agent.get(api('/orders?limit=1')).expect(200)).body
-      .data;
+    const [order] = (await agent.get(api('/orders')).expect(200)).body.data
+      .items;
     for (const term of [order.orderNo, order.orderNo.replace('FN-', '')]) {
       const found = (await agent.get(api(`/orders?q=${term}`)).expect(200)).body
-        .data;
+        .data.items;
       expect(found.map((o: { id: string }) => o.id)).toContain(order.id);
     }
   });
 
   it('still searches by vendor name', async () => {
-    const found = (await agent.get(api('/orders?q=Ravi')).expect(200)).body
-      .data;
+    const found = (await agent.get(api('/orders?q=Ravi')).expect(200)).body.data
+      .items;
     expect(found.length).toBeGreaterThan(0);
     const none = (await agent.get(api('/orders?q=Nobody')).expect(200)).body
       .data;
-    expect(none).toEqual([]);
+    expect(none).toMatchObject({ items: [], total: 0 });
   });
 
-  it('pages through orders with a cursor', async () => {
-    const first = (await agent.get(api('/orders?limit=2')).expect(200)).body
+  it('pages vendors with a total that counts every match', async () => {
+    const { company, phone } = await createCompany(prisma);
+    ids.push(company.id);
+    const own = await login(app, phone);
+    await prisma.vendor.createMany({
+      data: Array.from({ length: 16 }, (_, i) => ({
+        companyId: company.id,
+        name: `${i < 13 ? 'Alpha' : 'Beta'} ${String.fromCharCode(97 + i)}`,
+        phone: randomPhone(),
+      })),
+    });
+
+    const first = (await own.get(api('/vendors')).expect(200)).body.data;
+    expect(first).toMatchObject({ total: 16, page: 1, pageSize: 15 });
+    expect(first.items).toHaveLength(15);
+    const second = (await own.get(api('/vendors?page=2')).expect(200)).body
       .data;
-    expect(first).toHaveLength(2);
-    const next = (
-      await agent.get(api(`/orders?limit=2&cursor=${first[1].id}`)).expect(200)
+    expect(second).toMatchObject({ total: 16, page: 2, pageSize: 15 });
+    expect(second.items).toHaveLength(1);
+    const firstIds = first.items.map((v: { id: string }) => v.id);
+    expect(firstIds).not.toContain(second.items[0].id);
+
+    // Search narrows the total too.
+    const filtered = (
+      await own.get(api('/vendors?q=beta&sort=-name&pageSize=25')).expect(200)
     ).body.data;
-    expect(next.map((o: { id: string }) => o.id)).not.toContain(first[0].id);
-    await agent.get(api('/orders?limit=0')).expect(422);
+    expect(filtered).toMatchObject({ total: 3, pageSize: 25 });
+    expect(filtered.items.map((v: { name: string }) => v.name)).toEqual([
+      'Beta p',
+      'Beta o',
+      'Beta n',
+    ]);
+
+    await own.get(api('/vendors?pageSize=7')).expect(422);
+    await own.get(api('/vendors?page=0')).expect(422);
+    await own.get(api('/orders?status=bogus')).expect(422);
+    const badSort = await own.get(api('/vendors?sort=phone')).expect(422);
+    expect(badSort.body.fields).toHaveProperty('sort');
   });
 
   it('stops a deactivated user signing in, and ends their session', async () => {

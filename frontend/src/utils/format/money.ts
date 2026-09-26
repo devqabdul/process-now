@@ -19,7 +19,9 @@ const hasPaise = (amount: string) => {
   return paise !== undefined && Number(paise) !== 0;
 };
 
-export const formatMoney = (amount: string) => {
+// Takes undefined too: an API a release behind the app omits newer fields.
+export const formatMoney = (amount: string | undefined) => {
+  if (amount === undefined) return '—';
   // Number('') is 0, and a missing amount shown as ₹0 reads as "nothing owed".
   const value = amount.trim() === '' ? Number.NaN : Number(amount);
   // A malformed Decimal must not render as ₹NaN on the figure the shop reads daily.

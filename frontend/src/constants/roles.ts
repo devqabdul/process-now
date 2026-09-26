@@ -29,35 +29,8 @@ export const accentAvatar = (accent: string | undefined): string =>
 export const accentTile = (accent: string | undefined): string =>
   ACCENT_TILE[accent ?? ''] ?? ACCENT_TILE.brand ?? '';
 
-interface RoleMeta {
-  label: string;
-  home: string;
-  // The accent used until /roles answers; the API is what decides it afterwards.
-  accent: string;
-  // Tailwind classes from the design tokens
-  badgeClass: string;
-  avatarClass: string;
-  describe: (companyName: string) => string;
-  cta: (companyName: string) => string;
-}
-
-export const ROLE_META: Record<UserRole, RoleMeta> = {
-  super_admin: {
-    label: 'Super Admin',
-    home: '/admin/companies',
-    accent: 'brand',
-    badgeClass: 'bg-surface-muted text-fg-muted',
-    avatarClass: 'bg-brand-bg',
-    describe: () => 'You manage all companies on the platform.',
-    cta: () => 'Go to platform console',
-  },
-  company_admin: {
-    label: 'Company Admin',
-    home: '/',
-    accent: 'warning',
-    badgeClass: 'bg-warning-soft text-warning',
-    avatarClass: 'bg-warning-solid',
-    describe: (company) => `${company} · services, workflows, users & reports.`,
-    cta: (company) => `Go to ${company} dashboard`,
-  },
+// Where each role lands after sign-in. The label and accent come from the API.
+export const ROLE_HOME: Record<UserRole, string> = {
+  super_admin: '/admin/companies',
+  company_admin: '/',
 };

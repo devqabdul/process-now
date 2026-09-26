@@ -1,35 +1,65 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
-import { isSuccess, safeApiError } from '@api/process-backend';
+import { fetchAllPages, isSuccess, safeApiError, usePagedList } from '@api/process-backend';
 import {
   createVendor,
+  getVendors,
   updateVendor,
-  useVendors,
   type Vendor,
   vendorsKeys,
 } from '@api/process-backend/vendors';
 import type { VendorFormInput } from '@components/sections/vendors/vendor-form-dialog';
+import { buildVendorColumns } from '@components/sections/vendors/vendors-table';
+import type { PickerColumn } from '@components/ui/column-picker';
+import {
+  type ColumnVisibilityState,
+  type DataTableColumn,
+  exportRows,
+  pickerColumns,
+  type SortingState,
+} from '@components/ui/data-table';
+import { useCsvExport } from '@hooks/use-csv-export';
+import { useListParams } from '@hooks/use-list-params';
 import { useMediaQuery } from '@hooks/use-media-query';
+import { usePersistedState } from '@hooks/use-persisted-state';
 import { toMobileDigits } from '@utils/identifier';
 
-// Long enough that typing a name doesn't fire a request per keystroke.
-const SEARCH_DEBOUNCE_MS = 300;
+const SORT_KEYS = ['name', 'createdAt'];
 
 export interface UseVendorsListPageResult {
-  search: string;
-  setSearch: (value: string) => void;
   vendors: Vendor[];
+  total: number;
+  page: number;
+  pageSize: number;
+  q: string;
+  sorting: SortingState;
+  columns: DataTableColumn<Vendor>[];
+  columnVisibility: ColumnVisibilityState;
+  pickerColumns: PickerColumn[];
   target: Vendor | 'new' | null;
   showTable: boolean;
   isLoading: boolean;
+  isRefreshing: boolean;
+  isLoadingMore: boolean;
   isError: boolean;
+  exportError: string | null;
+  setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
+  setQ: (q: string) => void;
+  setSorting: (sorting: SortingState) => void;
+  setColumnVisibility: (visibility: ColumnVisibilityState) => void;
+  toggleColumn: (id: string, visible: boolean) => void;
+  loadMore: () => void;
+  exportCsv: () => Promise<void>;
   openNew: () => void;
   openEdit: (vendor: Vendor) => void;
   closeDialog: () => void;
   save: (values: VendorFormInput) => Promise<{ ok: boolean; message?: string }>;
   saved: string | null;
   dismissSaved: () => void;
+  // Set right after a retire, so the toast can put it back in one tap.
+  undoRetire: (() => void) | null;
   setActive: (vendor: Vendor, isActive: boolean) => void;
   retry: () => void;
   clearSearch: () => void;
@@ -37,19 +67,27 @@ export interface UseVendorsListPageResult {
 
 export const useVendorsListPage = (): UseVendorsListPageResult => {
   // state
-  const [search, setSearch] = useState('');
-  const [query, setQuery] = useState('');
   const [target, setTarget] = useState<Vendor | 'new' | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [retired, setRetired] = useState<{ item: Vendor; message: string } | null>(null);
+  const [columnVisibility, setColumnVisibility] = usePersistedState<ColumnVisibilityState>(
+    'pn.table.vendors.columns',
+    {},
+  );
 
   // wiring
   const queryClient = useQueryClient();
-  const { data, isPending, isError, refetch } = useVendors(query ? { q: query } : {});
-  // Tailwind's md: below it the same rows read better as cards.
-  const showTable = useMediaQuery('(min-width: 48rem)');
-
-  // derived
-  const vendors = data ?? [];
+  const list = useListParams(SORT_KEYS, 'name');
+  const filters = { ...(list.q ? { q: list.q } : {}), ...(list.apiSort && { sort: list.apiSort }) };
+  // Tailwind's lg: below it the rows read better as cards that load more.
+  const showTable = useMediaQuery('(min-width: 64rem)');
+  const rows = usePagedList(
+    vendorsKeys,
+    { ...filters, page: list.page, pageSize: list.pageSize },
+    showTable,
+    list.setPage,
+  );
+  const { exportError, runExport } = useCsvExport('vendors');
 
   // callbacks
   const save = async (values: VendorFormInput) => {
@@ -82,17 +120,17 @@ export const useVendorsListPage = (): UseVendorsListPageResult => {
   };
 
   // Retiring a vendor is reversible and touches nothing they've already brought in,
-  // so it needs no confirmation — the toast says what happened and the row says so too.
+  // so it takes one tap — and the toast offers Undo for a mis-tap.
   const setActive = async (vendor: Vendor, isActive: boolean) => {
     try {
       const response = await updateVendor(vendor.id, { isActive });
       if (!isSuccess(response.data)) return;
       await queryClient.invalidateQueries({ queryKey: vendorsKeys.all });
-      setSaved(
-        isActive
-          ? `${vendor.name} is active again.`
-          : `${vendor.name} is retired. Their past orders and bills are untouched.`,
-      );
+      const message = isActive
+        ? `${vendor.name} is active again.`
+        : `${vendor.name} is retired. Their past orders and bills are untouched.`;
+      setRetired(isActive ? null : { item: vendor, message });
+      setSaved(message);
     } catch (error) {
       safeApiError(error, {
         context: { page: 'vendors', action: 'setVendorActive' },
@@ -101,34 +139,62 @@ export const useVendorsListPage = (): UseVendorsListPageResult => {
     }
   };
 
-  // effects
-  useEffect(() => {
-    const id = setTimeout(() => setQuery(search.trim()), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(id);
-  }, [search]);
+  const openEdit = (vendor: Vendor) => {
+    setSaved(null);
+    setTarget(vendor);
+  };
+
+  const columns = buildVendorColumns({
+    onEdit: openEdit,
+    onSetActive: (vendor, isActive) => void setActive(vendor, isActive),
+  });
+
+  const exportCsv = () =>
+    runExport(async () => exportRows(columns, await fetchAllPages(getVendors, filters)));
 
   return {
-    search,
-    setSearch,
-    vendors,
+    vendors: rows.items,
+    total: rows.total,
+    page: list.page,
+    pageSize: list.pageSize,
+    q: list.q,
+    sorting: list.sorting,
+    columns,
+    columnVisibility,
+    pickerColumns: pickerColumns(columns, columnVisibility),
     target,
     showTable,
-    isLoading: isPending,
-    isError,
+    isLoading: rows.isLoading,
+    isRefreshing: rows.isRefreshing,
+    isLoadingMore: rows.isLoadingMore,
+    isError: rows.isError,
+    exportError,
+    setPage: list.setPage,
+    setPageSize: list.setPageSize,
+    setQ: list.setQ,
+    setSorting: list.setSorting,
+    setColumnVisibility,
+    toggleColumn: (id, visible) =>
+      setColumnVisibility((previous) => ({ ...previous, [id]: visible })),
+    loadMore: rows.loadMore,
+    exportCsv,
     openNew: () => {
       setSaved(null);
       setTarget('new');
     },
-    openEdit: (vendor) => {
-      setSaved(null);
-      setTarget(vendor);
-    },
+    openEdit,
     closeDialog: () => setTarget(null),
     save,
     saved,
-    dismissSaved: () => setSaved(null),
+    dismissSaved: () => {
+      setSaved(null);
+      setRetired(null);
+    },
+    // Only while the toast still shows the retire; a later message has nothing to undo.
+    undoRetire:
+      retired && saved === retired.message ? () => void setActive(retired.item, true) : null,
     setActive: (vendor, isActive) => void setActive(vendor, isActive),
-    retry: () => void refetch(),
-    clearSearch: () => setSearch(''),
+    retry: rows.retry,
+    clearSearch: () => list.setQ(''),
   };
 };

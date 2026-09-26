@@ -10,6 +10,8 @@ interface LoadErrorProps {
   description: string;
   onRetry: () => void;
   isRetrying?: boolean;
+  // Standalone on a page it draws its own card; inside a table or card list the container frames it.
+  framed?: boolean;
 }
 
 // The one shape a failed read takes: what didn't load, that nothing was lost, and a way back.
@@ -19,8 +21,9 @@ export const LoadError = ({
   description,
   onRetry,
   isRetrying = false,
-}: LoadErrorProps) => (
-  <Card className="p-0">
+  framed = false,
+}: LoadErrorProps) => {
+  const body = (
     <EmptyState
       icon={icon}
       title={title}
@@ -31,5 +34,6 @@ export const LoadError = ({
         </Button>
       }
     />
-  </Card>
-);
+  );
+  return framed ? <Card className="p-0">{body}</Card> : body;
+};

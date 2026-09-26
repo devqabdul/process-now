@@ -1,5 +1,6 @@
-import { queryOptions, useQuery } from '@tanstack/react-query';
+import { queryOptions, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
+import { listQueries } from '../list-query';
 import { unwrap } from '../unwrap';
 
 import { getOrder, getOrders } from './orders-service';
@@ -7,11 +8,7 @@ import type { OrdersQuery } from './orders.types';
 
 export const ordersKeys = {
   all: ['orders'] as const,
-  list: (params: OrdersQuery = {}) =>
-    queryOptions({
-      queryKey: [...ordersKeys.all, 'list', params] as const,
-      queryFn: () => unwrap(getOrders(params)),
-    }),
+  ...listQueries(['orders'], getOrders),
   detail: (id: string) =>
     queryOptions({
       queryKey: [...ordersKeys.all, 'detail', id] as const,
@@ -19,6 +16,9 @@ export const ordersKeys = {
     }),
 };
 
-export const useOrders = (params: OrdersQuery = {}) => useQuery(ordersKeys.list(params));
+export const useOrders = (params: OrdersQuery) => useQuery(ordersKeys.list(params));
+
+export const useOrdersInfinite = (params: Omit<OrdersQuery, 'page'>) =>
+  useInfiniteQuery(ordersKeys.infinite(params));
 
 export const useOrder = (id: string) => useQuery(ordersKeys.detail(id));

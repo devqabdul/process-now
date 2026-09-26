@@ -77,13 +77,34 @@ unknown property — `companyId`, a client-supplied `unitPrice` — is a 422, no
 - For a 422 raised inside a service, use `fieldError('amount', 'Only ₹40.00 is due')` — same shape as the
   pipe's, so the frontend handles both identically.
 
-## Paging
+## List endpoints
 
-List endpoints take `limit` (default 50, max 100) and `cursor` (the id of the last row of the previous
-page). Extend `PageQueryDto` and spread `paginate(query)` into the Prisma call. Cursor paging needs a
-**total** order, so every list orders by its sort column **and then `id`** — `orderBy: [{ receivedAt:
-'desc' }, { id: 'desc' }]`. Without the tiebreaker, rows sharing a timestamp can repeat or vanish
-between pages.
+Every paged list — `/vendors`, `/service-types`, `/orders`, `/bills`, `/expenses`, `/admin/companies` —
+takes the same query and returns the same shape, through `src/common/dto/list-query.dto.ts`.
+
+| Param      | Rule                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| `page`     | int ≥ 1, default 1                                                                               |
+| `pageSize` | 15, 25, 50 or 100; default 15                                                                    |
+| `q`        | ≤ 100 chars; case-insensitive search across the endpoint's text columns, OR'd                    |
+| `sort`     | one of the endpoint's keys, `-` prefixed for descending; anything else is a 422 on `fields.sort` |
+
+`data` is `{ items, total, page, pageSize }`; `total` counts every row matching the filters and search,
+not just the page. `/expenses` adds `sum`, the money total of the same rows.
+
+Adding a list:
+
+1. The query DTO extends `ListQueryDto` and adds only the endpoint's own filters. A multi-value filter
+   (`?status=a&status=b`) uses `@ToArray()` plus `@IsIn([...], { each: true })`.
+2. Beside the service, a module-level `ListSpec<Prisma.XWhereInput, Prisma.XOrderByWithRelationInput>`:
+   `search(term)` returns the where-clauses for `q`, `sortable` maps public keys to `orderBy` entries,
+   and `defaultSort` names one of them.
+3. In the service, `listArgs(baseWhere, query, spec)` — `baseWhere` is `{ companyId, ...filters }` and is
+   always ANDed, so search can't widen past the company — then run `findMany(args)` and
+   `count({ where: args.where })` in one `Promise.all` and return `paged(items, total, query)`.
+
+`listArgs` appends `{ id: dir }` to every sort. Offset paging needs a **total** order; without the
+tiebreaker, rows sharing a timestamp or name can repeat or vanish between pages.
 
 ## Swagger
 

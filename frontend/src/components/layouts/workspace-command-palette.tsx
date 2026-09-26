@@ -3,7 +3,6 @@ import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef, useState }
 import { useNavigate } from 'react-router';
 
 import { EmptyState } from '@components/shared/empty-state';
-import { IconButton } from '@components/ui/icon-button';
 import type { NavItem } from '@constants/navigation';
 import { cn } from '@lib/cn';
 
@@ -67,15 +66,11 @@ export const WorkspaceCommandPalette = ({ items }: WorkspaceCommandPaletteProps)
         className="hidden min-w-0 flex-1 items-center gap-2.5 rounded-10 border border-line bg-surface-subtle px-2.75 py-2 text-fg-subtle transition-[border-color,background-color] duration-150 hover:border-line-strong hover:bg-surface lg:flex lg:max-w-130"
       >
         <Search aria-hidden="true" className="size-3.75 flex-none" strokeWidth={1.8} />
-        <span className="flex-1 truncate text-left text-[13px]">Search screens…</span>
-        <span className="flex-none rounded-6 border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-[10.5px] text-fg-muted">
+        <span className="flex-1 truncate text-left text-13">Search screens…</span>
+        <span className="flex-none rounded-6 border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-11 text-fg-muted">
           {SHORTCUT}
         </span>
       </button>
-
-      <IconButton aria-label="Search screens" onClick={open} className="ml-auto lg:hidden">
-        <Search aria-hidden="true" className="size-4.75" strokeWidth={1.7} />
-      </IconButton>
 
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click to dismiss; <dialog> already closes on Escape */}
       <dialog
@@ -106,9 +101,9 @@ export const WorkspaceCommandPalette = ({ items }: WorkspaceCommandPaletteProps)
             }}
             onKeyDown={onInputKeyDown}
             placeholder="Search screens…"
-            className="h-7 min-w-0 flex-1 border-none bg-transparent text-[14.5px] text-fg outline-none placeholder:text-placeholder"
+            className="h-7 min-w-0 flex-1 border-none bg-transparent text-sm text-fg outline-none placeholder:text-placeholder"
           />
-          <span className="flex-none rounded-6 border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-[10.5px] text-fg-muted">
+          <span className="flex-none rounded-6 border border-line bg-surface-muted px-1.5 py-0.5 font-mono text-11 text-fg-muted">
             Esc
           </span>
         </div>
@@ -136,7 +131,7 @@ export const WorkspaceCommandPalette = ({ items }: WorkspaceCommandPaletteProps)
                 onClick={() => go(item.to)}
                 onMouseMove={() => setActive(index)}
                 className={cn(
-                  'flex cursor-pointer items-center gap-3 rounded-9 px-2.75 py-2.5 text-[13.5px] font-medium text-fg-secondary',
+                  'flex cursor-pointer items-center gap-3 rounded-9 px-2.75 py-2.5 text-sm font-medium text-fg-secondary',
                   index === active && 'bg-surface-muted text-fg',
                 )}
               >

@@ -23,7 +23,7 @@ export const BrandLockup = ({ tone = 'dark', size = 'sm', className }: BrandLock
     <span
       className={cn(
         'font-mono font-semibold tracking-[0.12em]',
-        size === 'md' ? 'text-sm' : 'text-[13px]',
+        size === 'md' ? 'text-sm' : 'text-13',
       )}
     >
       PROCESSNOW

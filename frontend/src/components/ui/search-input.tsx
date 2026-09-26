@@ -1,4 +1,5 @@
 import { Search, X } from 'lucide-react';
+import type { KeyboardEvent, Ref } from 'react';
 
 import { cn } from '@lib/cn';
 
@@ -11,6 +12,9 @@ interface SearchInputProps {
   // Visible placeholders aren't labels; this names the field for screen readers.
   label: string;
   className?: string;
+  inputRef?: Ref<HTMLInputElement>;
+  onBlur?: () => void;
+  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export const SearchInput = ({
@@ -19,6 +23,9 @@ export const SearchInput = ({
   placeholder = 'Search…',
   label,
   className,
+  inputRef,
+  onBlur,
+  onKeyDown,
 }: SearchInputProps) => (
   <InputShell
     leading={<Search aria-hidden="true" className="size-3.75" strokeWidth={1.8} />}
@@ -37,12 +44,15 @@ export const SearchInput = ({
     className={cn('h-11 gap-2.25 rounded-10 border px-3 lg:h-9.5', className)}
   >
     <input
+      ref={inputRef}
+      onBlur={onBlur}
+      onKeyDown={onKeyDown}
       type="search"
       value={value}
       onChange={(event) => onChange(event.target.value)}
       placeholder={placeholder}
       aria-label={label}
-      className={cn(inputClasses, 'text-[13px] [&::-webkit-search-cancel-button]:appearance-none')}
+      className={cn(inputClasses, 'text-13 [&::-webkit-search-cancel-button]:appearance-none')}
     />
   </InputShell>
 );

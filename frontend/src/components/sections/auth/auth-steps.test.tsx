@@ -18,13 +18,14 @@ describe('login steps', () => {
       <IdentifyStep
         field={field('identifier')}
         error={undefined}
-        kind={null}
+        kind="mobile"
+        onKindChange={vi.fn()}
         isValid={false}
         shake={false}
         onSubmit={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText('Email or mobile number')).toBeRequired();
+    expect(screen.getByLabelText('Mobile number')).toBeRequired();
     unmount();
 
     render(

@@ -36,7 +36,7 @@ export const PasswordStep = ({
     <button
       type="button"
       onClick={onBack}
-      className="mb-5 flex items-center gap-1.5 text-[12.5px] font-semibold text-fg-subtle transition-colors duration-200 hover:text-fg"
+      className="mb-5 flex items-center gap-1.5 text-13 font-semibold text-fg-subtle transition-colors duration-200 hover:text-fg"
     >
       <ChevronLeft className="size-3.5" strokeWidth={2} aria-hidden="true" />
       Back
@@ -46,14 +46,14 @@ export const PasswordStep = ({
     </h1>
 
     <div className="mb-6 flex items-center gap-2.5 rounded-12 border border-line-subtle bg-surface-subtle px-3 py-2.5">
-      <span className="grid size-7 flex-none place-items-center rounded-9 bg-fg-subtle text-[11px] font-bold text-surface">
+      <span className="grid size-7 flex-none place-items-center rounded-9 bg-fg-subtle text-11 font-bold text-surface">
         {isMobile ? (
           <Smartphone className="size-3.5" strokeWidth={2} aria-hidden="true" />
         ) : (
           identityShown.charAt(0).toUpperCase()
         )}
       </span>
-      <span className="min-w-0 truncate text-[13px] font-medium">{identityShown}</span>
+      <span className="min-w-0 truncate text-13 font-medium">{identityShown}</span>
       <button
         type="button"
         onClick={onBack}
@@ -67,6 +67,7 @@ export const PasswordStep = ({
       <FieldLabel htmlFor="password">Password</FieldLabel>
     </div>
     <InputShell
+      size="lg"
       invalid={!!error}
       shake={shake}
       leading={<Lock className="size-4" strokeWidth={1.8} aria-hidden="true" />}
@@ -100,7 +101,7 @@ export const PasswordStep = ({
         {...field}
       />
     </InputShell>
-    <FieldError id="password-error" message={error?.message} />
+    <FieldError id="password-error" message={error?.message} reserve />
 
     <Button type="submit" loading={isSubmitting} className="mt-3.5">
       {isSubmitting ? 'Signing in…' : 'Sign in'}

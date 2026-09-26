@@ -1,4 +1,5 @@
 import { http } from '../axios';
+import type { Paged } from '../common.types';
 import type { ApiEnvelope } from '../types';
 
 import type {
@@ -8,8 +9,8 @@ import type {
   UpdateServiceTypePayload,
 } from './service-types.types';
 
-export const getServiceTypes = (params: ServiceTypesQuery = {}) =>
-  http.get<ApiEnvelope<ServiceType[]>>('/service-types', { params });
+export const getServiceTypes = (params: ServiceTypesQuery) =>
+  http.get<ApiEnvelope<Paged<ServiceType>>>('/service-types', { params });
 
 export const getServiceType = (id: string) =>
   http.get<ApiEnvelope<ServiceType>>(`/service-types/${id}`);
@@ -19,3 +20,6 @@ export const createServiceType = (payload: CreateServiceTypePayload) =>
 
 export const updateServiceType = (id: string, payload: UpdateServiceTypePayload) =>
   http.patch<ApiEnvelope<ServiceType>>(`/service-types/${id}`, payload);
+
+export const deleteServiceType = (id: string) =>
+  http.delete<ApiEnvelope<ServiceType>>(`/service-types/${id}`);

@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
 import type { Order } from '@api/process-backend/orders';
 import { LetterTile } from '@components/ui/avatar';
@@ -18,19 +18,24 @@ import {
 
 const helper = createColumnHelper<DataTableFeatures, Order>();
 
-const buildColumns = (actions: OrderActionHandlers) =>
+// Column ids that sort are the API's sort keys: orderNo, vendor, receivedAt.
+export const buildOrderColumns = (actions: OrderActionHandlers) =>
   helper.columns([
     helper.accessor('orderNo', {
       header: 'Order',
       enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-24 font-mono text-fg-muted' },
+      meta: {
+        className: 'w-24 font-mono whitespace-nowrap text-fg-muted',
+        hideable: false,
+        exportValue: (order) => order.orderNo,
+      },
       cell: ({ row }) => row.original.orderNo,
     }),
-    helper.display({
+    helper.accessor((order) => order.vendor.name, {
       id: 'vendor',
       header: 'Vendor',
-      meta: { className: 'w-[22%] font-medium' },
+      enableSorting: true,
+      meta: { className: 'w-[22%] font-medium', exportValue: (order) => order.vendor.name },
       cell: ({ row }) => (
         <span className="flex items-center gap-2.5">
           <LetterTile name={row.original.vendor.name} size="sm" />
@@ -41,65 +46,73 @@ const buildColumns = (actions: OrderActionHandlers) =>
     helper.display({
       id: 'service',
       header: 'Service',
-      meta: { className: 'w-[22%] text-fg-secondary' },
+      meta: {
+        className: 'w-[20%] text-fg-secondary',
+        exportValue: (order) => order.items.map((item) => item.serviceType.name).join('; '),
+      },
       cell: ({ row }) => <OrderServices order={row.original} />,
     }),
     helper.display({
       id: 'qty',
       header: 'Quantity in',
-      meta: { className: 'w-28 font-mono' },
+      meta: {
+        className: 'w-28 text-right font-mono',
+        exportValue: (order) => order.items.reduce((sum, item) => sum + Number(item.qtyIn), 0),
+      },
       cell: ({ row }) => orderQuantity(row.original),
     }),
     helper.accessor('receivedAt', {
       header: 'Received',
       enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-24 font-mono text-fg-muted' },
+      meta: {
+        className: 'w-24 text-fg-muted tabular-nums',
+        exportValue: (order) => order.receivedAt,
+      },
       cell: ({ row }) => formatShortDate(row.original.receivedAt),
     }),
     helper.display({
       id: 'status',
       header: 'Status',
-      meta: { className: 'w-28' },
+      meta: { className: 'w-28', exportValue: (order) => order.status },
       cell: ({ row }) => <OrderStatusBadge status={row.original.status} />,
     }),
     helper.display({
       id: 'bill',
       header: 'Bill',
-      meta: { className: 'w-28 font-mono text-[11px] text-fg-muted' },
-      cell: ({ row }) =>
-        row.original.bill ? (
-          <>
-            {row.original.bill.billNo}
-            <span className="block">{formatMoney(row.original.bill.total)}</span>
-          </>
-        ) : (
-          '—'
-        ),
+      meta: {
+        className: 'w-24 font-mono whitespace-nowrap text-fg-muted',
+        exportValue: (order) => order.bill?.billNo,
+      },
+      cell: ({ row }) => row.original.bill?.billNo ?? '—',
+    }),
+    helper.display({
+      id: 'billTotal',
+      header: 'Bill total',
+      meta: {
+        className: 'w-28 text-right font-mono',
+        exportValue: (order) => order.bill?.total,
+      },
+      cell: ({ row }) => (row.original.bill ? formatMoney(row.original.bill.total) : '—'),
     }),
     helper.display({
       id: 'actions',
       header: '',
-      meta: { className: 'w-12' },
+      meta: { label: 'Actions', hideable: false },
       cell: ({ row }) => <OrderActions order={row.original} {...actions} />,
     }),
   ]);
 
-interface OrdersTableProps extends OrderActionHandlers {
-  rows: Order[];
-  loading: boolean;
-  empty: ReactNode;
-}
+type OrdersTableProps = Omit<
+  ComponentProps<typeof DataTable<Order>>,
+  'label' | 'rowKey' | 'skeletonRows' | 'tableClassName'
+>;
 
-export const OrdersTable = ({ rows, loading, empty, ...actions }: OrdersTableProps) => (
+export const OrdersTable = (props: OrdersTableProps) => (
   <DataTable
-    columns={buildColumns(actions)}
-    rows={rows}
-    rowKey={(order) => order.id}
+    {...props}
     label="Orders"
-    loading={loading}
+    rowKey={(order) => order.id}
     skeletonRows={ORDER_SKELETON_ROWS}
-    tableClassName="min-w-[860px]"
-    empty={empty}
+    tableClassName="min-w-[940px]"
   />
 );

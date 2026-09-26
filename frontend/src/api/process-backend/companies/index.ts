@@ -5,4 +5,4 @@ export {
   resetAdminPassword,
   setCompanyActive,
 } from './companies-service';
-export { companiesKeys, useCompanies } from './use-companies-queries';
+export { companiesKeys, useCompanies, useCompaniesInfinite } from './use-companies-queries';

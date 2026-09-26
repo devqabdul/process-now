@@ -48,7 +48,7 @@ frontend's helpers expect it.
   `@IsName()`, `@IsPhone()`, `@IsEmailAddress()`, `@IsGstNo()`, `@IsAmount()`, `@IsDateOnly()` over
   assembling the same stack of decorators again. They normalise as well as validate.
 - **Never `@IsOptional()`** — it skips every other validator on an explicit `null`. Use `@Optional()`.
-- Query DTOs extend `PageQueryDto` when the route lists rows, and need `@Type(() => Number)` on numeric
+- Query DTOs extend `ListQueryDto` when the route lists rows, and need `@Type(() => Number)` on numeric
   params because query strings arrive as strings and implicit conversion is off.
 - `@ApiProperty` where Swagger can't infer the type. Response DTOs, if written, are Swagger-only — the
   service returns Prisma objects. See [`types.md`](./types.md).

@@ -37,7 +37,7 @@ Live as close to their use as possible. Promote only when a second unrelated con
 - **Filename**: `<domain>.types.ts` (dot-types) in the api layer. `types.ts` unqualified exists
   only at `src/api/process-backend/types.ts`, the package root, which holds the envelope and the
   error shapes. A contract shared by every domain but belonging to none goes beside it as
-  `common.types.ts` — today that is `PageQuery`, the cursor-paging shape.
+  `common.types.ts` — today that is `ListParams` and `Paged<T>`, the list contract.
 - **`interface` for object shapes, `type` for unions and aliases.** `type UserRole = 'super_admin'
 | 'company_admin'`, `interface Company { … }`.
 - **Type-only imports are explicit**: `import type { … }`. Enforced by

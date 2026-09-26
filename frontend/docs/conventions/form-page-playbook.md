@@ -109,9 +109,10 @@ export const CreateCompanyPage = () => {
 
 - `<title>New company · ProcessNow</title>` inside the page (React 19 hoists it).
 - `<PageHeader title subtitle actions />` owns the single `<h1>`.
-- Fields go through `FormField` (`@components/sections/admin/form-field`) or, for the login
-  steps, `InputShell` + `FieldLabel` + `FieldError` directly. Never a hand-rolled `<input>`
-  without label and error wiring.
+- Fields go through `FormField` (`@components/shared/form-field`), pick-lists through its
+  twin `SelectField` (`@components/shared/select-field`: a native `<select>` with the design's
+  chevron), or, for the login steps, `InputShell` + `FieldLabel` + `FieldError` directly. Never a
+  hand-rolled `<input>` or `<select>` without label and error wiring.
 - `<form noValidate onSubmit={handleSubmit}>` — the schema owns validation.
 - `<Button type="submit" loading={isSubmitting}>` with a changed label
   (`Create company` → `Creating company…`). Never a full-page loader on submit.

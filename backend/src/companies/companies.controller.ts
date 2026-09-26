@@ -7,7 +7,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { PageQueryDto } from '../common/dto/page-query.dto.js';
+import { ListQueryDto } from '../common/dto/list-query.dto.js';
 import { ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -28,7 +28,7 @@ export class CompaniesController {
   constructor(private readonly companies: CompaniesService) {}
 
   @Get()
-  findAll(@Query() query: PageQueryDto) {
+  findAll(@Query() query: ListQueryDto) {
     return this.companies.findAll(query);
   }
 
