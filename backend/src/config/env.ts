@@ -3,7 +3,16 @@ import { z } from 'zod';
 export const envSchema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   JWT_SECRET: z.string().min(32),
-  WEB_ORIGIN: z.url(),
+  /** Comma-separated frontend origins allowed by CORS, e.g. prod + local dev. */
+  WEB_ORIGIN: z
+    .string()
+    .transform((v) =>
+      v
+        .split(',')
+        .map((o) => o.trim())
+        .filter(Boolean),
+    )
+    .pipe(z.array(z.url()).min(1)),
   PORT: z.coerce.number().int().positive().default(1010),
   // No default: on a host that doesn't set it, a default of 'development' would
   // silently drop the Secure flag from the session cookie.
