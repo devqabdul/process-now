@@ -8,10 +8,8 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { ParseDatePipe } from '../common/validators.js';
 import { DailyLogsService } from './daily-logs.service.js';
-import {
-  ListDailyLogsQueryDto,
-  UpsertDailyLogDto,
-} from './dto/daily-log.dto.js';
+import { DateRangeQueryDto } from '../common/dto/date-range-query.dto.js';
+import { UpsertDailyLogDto } from './dto/daily-log.dto.js';
 
 @ApiTags('daily-logs')
 @Roles(['company_admin'])
@@ -20,11 +18,8 @@ export class DailyLogsController {
   constructor(private readonly dailyLogs: DailyLogsService) {}
 
   @Get()
-  findRange(
-    @CompanyId() companyId: string,
-    @Query() { from, to }: ListDailyLogsQueryDto,
-  ) {
-    return this.dailyLogs.findRange(companyId, from, to);
+  findRange(@CompanyId() companyId: string, @Query() query: DateRangeQueryDto) {
+    return this.dailyLogs.findRange(companyId, query);
   }
 
   @Get(':date')

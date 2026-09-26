@@ -1,13 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import {
-  addDays,
-  fromDateColumn,
-  today,
-  toDateColumn,
-} from '../common/dates.js';
-import { fieldError } from '../common/validators.js';
+import { fromDateColumn, today, toDateColumn } from '../common/dates.js';
+import { fieldError, resolveRange } from '../common/validators.js';
 import type { DailyLog } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import type { DateRangeQueryDto } from '../common/dto/date-range-query.dto.js';
 import type { UpsertDailyLogDto } from './dto/daily-log.dto.js';
 
 const toView = (log: DailyLog) => ({
@@ -19,11 +15,8 @@ const toView = (log: DailyLog) => ({
 export class DailyLogsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findRange(companyId: string, from?: string, to = today()) {
-    from ??= addDays(to, -29);
-    if (from > to) throw fieldError('from', '`from` must be on or before `to`');
-    if (from < addDays(to, -366))
-      throw fieldError('from', 'Pick at most a year');
+  async findRange(companyId: string, query: DateRangeQueryDto) {
+    const { from, to } = resolveRange(query.from, query.to);
     const logs = await this.prisma.dailyLog.findMany({
       where: {
         companyId,

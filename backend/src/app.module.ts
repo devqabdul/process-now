@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module.js';
+import { BankAccountsModule } from './bank-accounts/bank-accounts.module.js';
 import { BillingModule } from './billing/billing.module.js';
 import { CompaniesModule } from './companies/companies.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
@@ -11,6 +12,7 @@ import { envSchema } from './config/env.js';
 import { HealthModule } from './health/health.module.js';
 import { DailyLogsModule } from './daily-logs/daily-logs.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
+import { ExpensesModule } from './expenses/expenses.module.js';
 import { OrdersModule } from './orders/orders.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RolesModule } from './roles/roles.module.js';
@@ -34,6 +36,8 @@ import { VendorsModule } from './vendors/vendors.module.js';
     OrdersModule,
     BillingModule,
     DailyLogsModule,
+    BankAccountsModule,
+    ExpensesModule,
     DashboardModule,
     RolesModule,
   ],

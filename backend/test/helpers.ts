@@ -70,7 +70,9 @@ export async function login(app: INestApplication, identifier: string) {
 /** Deletes everything the tests created, children first. */
 export async function deleteCompanies(prisma: PrismaService, ids: string[]) {
   const where = { companyId: { in: ids } };
+  await prisma.expense.deleteMany({ where });
   await prisma.payment.deleteMany({ where });
+  await prisma.bankAccount.deleteMany({ where });
   await prisma.bill.deleteMany({ where });
   await prisma.order.deleteMany({ where }); // order_items cascade
   await prisma.serviceType.deleteMany({ where });

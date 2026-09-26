@@ -58,6 +58,8 @@ model Company {
   bills        Bill[]
   payments     Payment[]
   dailyLogs    DailyLog[]
+  bankAccounts BankAccount[]
+  expenses     Expense[]
   /// audit: who created the row, and when
   createdAt    DateTime      @default(now()) @map("created_at")
   createdBy    String?       @map("created_by") @db.Uuid
@@ -241,25 +243,29 @@ model Bill {
 }
 
 model Payment {
-  id        String   @id @default(uuid(7)) @db.Uuid
-  companyId String   @map("company_id") @db.Uuid
-  billId    String   @map("bill_id") @db.Uuid
-  amount    Decimal  @db.Decimal(12, 2)
+  id            String   @id @default(uuid(7)) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  billId        String   @map("bill_id") @db.Uuid
+  amount        Decimal  @db.Decimal(12, 2)
   /// 'cash' | 'upi' | 'bank' | ...; validated in the DTO
-  method    String
-  paidAt    DateTime @default(now()) @map("paid_at")
+  method        String
+  paidAt        DateTime @default(now()) @map("paid_at")
+  /// the account the money landed in; null = not assigned to any account
+  bankAccountId String?  @map("bank_account_id") @db.Uuid
 
-  company   Company  @relation(fields: [companyId], references: [id])
-  bill      Bill     @relation(fields: [billId], references: [id])
+  company     Company      @relation(fields: [companyId], references: [id])
+  bill        Bill         @relation(fields: [billId], references: [id])
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
   /// audit: who created the row, and when
-  createdAt DateTime @default(now()) @map("created_at")
-  createdBy String?  @map("created_by") @db.Uuid
+  createdAt   DateTime     @default(now()) @map("created_at")
+  createdBy   String?      @map("created_by") @db.Uuid
   /// audit: who last changed it, and when
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
-  updatedBy String?  @map("updated_by") @db.Uuid
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at")
+  updatedBy   String?      @map("updated_by") @db.Uuid
 
   @@index([companyId])
   @@index([billId])
+  @@index([bankAccountId])
   @@index([createdBy])
   @@map("payments")
 }
@@ -282,4 +288,54 @@ model DailyLog {
 
   @@unique([companyId, logDate])
   @@map("daily_logs")
+}
+
+/// Where the company's money sits: a bank account, or cash in hand.
+/// Balance is derived (opening + payments in − expenses out), never stored.
+model BankAccount {
+  id             String  @id @default(uuid(7)) @db.Uuid
+  companyId      String  @map("company_id") @db.Uuid
+  name           String
+  openingBalance Decimal @default(0) @map("opening_balance") @db.Decimal(12, 2)
+  /// false hides it from new payments and expenses; its history stays
+  isActive       Boolean @default(true) @map("is_active")
+
+  company   Company   @relation(fields: [companyId], references: [id])
+  payments  Payment[]
+  expenses  Expense[]
+  /// audit: who created the row, and when
+  createdAt DateTime  @default(now()) @map("created_at")
+  createdBy String?   @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
+  updatedBy String?   @map("updated_by") @db.Uuid
+
+  @@unique([companyId, name])
+  @@index([createdBy])
+  @@map("bank_accounts")
+}
+
+model Expense {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  companyId     String   @map("company_id") @db.Uuid
+  bankAccountId String   @map("bank_account_id") @db.Uuid
+  /// free text; the UI suggests categories the company has used before
+  category      String
+  amount        Decimal  @db.Decimal(12, 2)
+  spentOn       DateTime @map("spent_on") @db.Date
+  notes         String?
+
+  company     Company     @relation(fields: [companyId], references: [id])
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id])
+  /// audit: who created the row, and when
+  createdAt   DateTime    @default(now()) @map("created_at")
+  createdBy   String?     @map("created_by") @db.Uuid
+  /// audit: who last changed it, and when
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at")
+  updatedBy   String?     @map("updated_by") @db.Uuid
+
+  @@index([companyId, spentOn])
+  @@index([bankAccountId])
+  @@index([createdBy])
+  @@map("expenses")
 }

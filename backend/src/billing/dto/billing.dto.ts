@@ -1,4 +1,4 @@
-import { IsIn, Min } from 'class-validator';
+import { IsIn, IsUUID, Min } from 'class-validator';
 import { PageQueryDto } from '../../common/dto/page-query.dto.js';
 import { IsAmount, IsName, Optional } from '../../common/validators.js';
 
@@ -23,6 +23,11 @@ export class RecordPaymentDto {
 
   @IsIn(PAYMENT_METHODS)
   method: (typeof PAYMENT_METHODS)[number];
+
+  /** The account the money landed in; optional, left out of every statement when unset */
+  @Optional()
+  @IsUUID()
+  bankAccountId?: string;
 }
 
 export class ListBillsQueryDto extends PageQueryDto {

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/client';
+import { assertBankAccount } from '../common/bank-account.js';
 import { companyPrefix } from '../common/company-number.js';
 import { readSettings } from '../common/company-settings.js';
 import { formatDocumentNo } from '../common/document-number.js';
@@ -26,7 +27,10 @@ const listInclude = {
 } as const;
 
 const detailInclude = {
-  payments: { orderBy: { paidAt: 'asc' } },
+  payments: {
+    include: { bankAccount: { select: { id: true, name: true } } },
+    orderBy: { paidAt: 'asc' },
+  },
   order: {
     include: {
       vendor: { select: { id: true, name: true, phone: true, address: true } },
@@ -197,6 +201,8 @@ export class BillingService {
             : 'This bill is fully paid',
         );
       }
+      if (dto.bankAccountId)
+        await assertBankAccount(tx, companyId, dto.bankAccountId);
       await tx.payment.create({
         data: { ...dto, companyId, billId, createdBy: actor, updatedBy: actor },
       });

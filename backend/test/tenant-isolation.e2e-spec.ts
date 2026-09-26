@@ -21,6 +21,8 @@ describe.skipIf(!HAS_DB)('tenant isolation (e2e, DB)', () => {
     serviceTypeId: string;
     orderId: string;
     billId: string;
+    accountId: string;
+    expenseId: string;
   };
 
   beforeAll(async () => {
@@ -71,7 +73,21 @@ describe.skipIf(!HAS_DB)('tenant isolation (e2e, DB)', () => {
         total: 80,
       },
     });
+    const account = await prisma.bankAccount.create({
+      data: { companyId: B.company.id, name: 'B bank' },
+    });
+    const expense = await prisma.expense.create({
+      data: {
+        companyId: B.company.id,
+        bankAccountId: account.id,
+        category: 'Rent',
+        amount: 100,
+        spentOn: new Date('2026-01-01T00:00:00Z'),
+      },
+    });
     b = {
+      accountId: account.id,
+      expenseId: expense.id,
       vendorId: vendor.id,
       serviceTypeId: st.id,
       orderId: order.id,
@@ -90,6 +106,11 @@ describe.skipIf(!HAS_DB)('tenant isolation (e2e, DB)', () => {
     ['post', () => api(`/orders/${b.orderId}/start`)],
     ['get', () => api(`/bills/${b.billId}`)],
     ['get', () => api(`/service-types/${b.serviceTypeId}`)],
+    ['get', () => api(`/bank-accounts/${b.accountId}`)],
+    ['get', () => api(`/bank-accounts/${b.accountId}/statement`)],
+    ['patch', () => api(`/bank-accounts/${b.accountId}`)],
+    ['patch', () => api(`/expenses/${b.expenseId}`)],
+    ['delete', () => api(`/expenses/${b.expenseId}`)],
   ] as const)('%s %s → 404', async (method, path) => {
     await agentA[method](path()).expect(404);
   });
@@ -125,11 +146,35 @@ describe.skipIf(!HAS_DB)('tenant isolation (e2e, DB)', () => {
     expect(res.body.fields).toHaveProperty('vendorId');
   });
 
+  it("cannot spend from B's bank account", async () => {
+    const res = await agentA
+      .post(api('/expenses'))
+      .send({
+        bankAccountId: b.accountId,
+        category: 'Rent',
+        amount: 1,
+        spentOn: '2026-01-01',
+      })
+      .expect(422);
+    expect(res.body.fields).toHaveProperty('bankAccountId');
+  });
+
   it('lists only its own records', async () => {
-    for (const path of ['/orders', '/bills', '/vendors', '/service-types']) {
+    for (const path of [
+      '/orders',
+      '/bills',
+      '/vendors',
+      '/service-types',
+      '/bank-accounts',
+      '/expenses/categories',
+    ]) {
       const res = await agentA.get(api(path)).expect(200);
       expect(res.body.data).toEqual([]);
     }
+    const res = await agentA
+      .get(api('/expenses?from=2026-01-01&to=2026-01-31'))
+      .expect(200);
+    expect(res.body.data.expenses).toEqual([]);
   });
 
   it('ignores a companyId sent in the body', async () => {

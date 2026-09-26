@@ -19,9 +19,11 @@ Based on [problem-statement.md](problem-statement.md). The data model is indepen
 | `orders`        | orders, order_items | Create order, set status, record quantity returned, **price calculation** |
 | `billing`       | bills, payments     | Generate bill from order; record payments; amount due                     |
 | `daily-logs`    | daily_logs          | One entry per company per day: machine hours and electricity units        |
+| `bank-accounts` | bank_accounts       | Where the money sits (bank or cash); balance and statement per account    |
+| `expenses`      | expenses            | Money paid out of an account, with a free-text category                   |
 | `dashboard`     | (no tables)         | Read-only aggregate queries across the modules above                      |
 
-Dependencies go one way: `dashboard` → `billing` → `orders` → `service-types` / `vendors` → `companies`.
+Dependencies go one way: `dashboard` → `billing` → `orders` → `service-types` / `vendors` → `companies`. `bank-accounts` and `expenses` only read the tables they need; the open-account check they share with `billing` lives in `src/common/bank-account.ts`.
 
 ## Data model
 
@@ -70,6 +72,14 @@ bills
 
 payments
   id, company_id, bill_id, amount, method, paid_at
+  bank_account_id (nullable) -- the account the money landed in; unset = in no statement
+
+bank_accounts
+  id, company_id, name (unique per company), opening_balance, is_active
+  -- balance = opening_balance + sum(payments) - sum(expenses); derived, never stored
+
+expenses
+  id, company_id, bank_account_id, category (free text), amount, spent_on (date), notes
 
 daily_logs
   id, company_id, log_date, machine_hours, electricity_units, notes
@@ -128,6 +138,7 @@ amount = unit_price * billable_qty
 | Machine hours per day   | `daily_logs.machine_hours`                                                                              |
 | Electricity per day     | `daily_logs.electricity_units` (cost = units × `settings.electricityRate`)                              |
 | Daily earnings          | `sum(bills.total)` by `issued_at` date                                                                  |
+| Expenses per day        | `sum(expenses.amount)` by `spent_on`; shown beside profit, not subtracted (see Decisions 3)             |
 | Estimated daily profit  | `sum(bills.subtotal)` (GST excluded) − `sum(unit_cost × billable_qty)` for that day's bills             |
 
 ## Tech stack
@@ -151,7 +162,7 @@ Notes:
 
 1. **Database:** PostgreSQL (hosted on Supabase).
 2. **Machine hours:** entered manually by the Company Admin in the daily log, one entry per company per day. No `machines` table in the POC. Add one (plus `machine_id` on `daily_logs`) if a company later wants hours per machine.
-3. **Profit:** the POC shows estimated profit (from service type costs) and electricity cost as **separate** figures. How a company combines them is company-specific, so it is deferred. When needed, store the rule in `companies.settings` so the same code works for every company.
+3. **Profit:** the POC shows estimated profit (from service type costs), electricity cost and expenses as **separate** figures. How a company combines them is company-specific, so it is deferred. When needed, store the rule in `companies.settings` so the same code works for every company.
 
 ## Open decisions
 
