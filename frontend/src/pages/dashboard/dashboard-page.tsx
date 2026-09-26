@@ -4,7 +4,6 @@ import { Link } from 'react-router';
 import { DateSwitcher } from '@components/sections/dashboard/date-switcher';
 import { PendingOrdersTable } from '@components/sections/dashboard/pending-orders-table';
 import { StatGrid } from '@components/sections/dashboard/stat-grid';
-import { EmptyState } from '@components/shared/empty-state';
 import { LoadError } from '@components/shared/load-error';
 import { PageHeader } from '@components/shared/page-header';
 import { buttonClasses } from '@components/ui/button';
@@ -28,6 +27,7 @@ export const DashboardPage = () => {
 
       {isError ? (
         <LoadError
+          framed
           icon={CloudOff}
           title="We couldn't load these numbers"
           description="The dashboard didn't come through. Check your connection and try again — nothing has been lost."
@@ -39,23 +39,25 @@ export const DashboardPage = () => {
           <StatGrid dashboard={dashboard} />
 
           {dashboard && !dashboard.dailyLog && (
-            <Card className="p-0">
-              <EmptyState
-                icon={ClipboardList}
-                title="Daily log not filled in"
-                description="Machine hours and electricity units for this day haven't been recorded. Add them to complete the day's numbers."
-                action={
-                  <Link
-                    to="/daily-log"
-                    className={cn(
-                      buttonClasses('primary', 'md'),
-                      'hover:text-primary-fg hover:no-underline',
-                    )}
-                  >
-                    Add daily log
-                  </Link>
-                }
-              />
+            <Card className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center">
+              <span className="hidden size-9 flex-none place-items-center rounded-10 bg-warning-soft text-warning sm:grid">
+                <ClipboardList aria-hidden="true" className="size-4.5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-semibold">Daily log not filled in</h2>
+                <p className="text-13 text-fg-subtle">
+                  Add this day's machine hours and electricity units to complete its numbers.
+                </p>
+              </div>
+              <Link
+                to="/daily-log"
+                className={cn(
+                  buttonClasses('primary', 'md'),
+                  'flex-none hover:text-primary-fg hover:no-underline',
+                )}
+              >
+                Add daily log
+              </Link>
             </Card>
           )}
 

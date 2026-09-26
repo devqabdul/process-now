@@ -12,6 +12,7 @@ interface EmptyStateProps {
   className?: string;
 }
 
+// The one "nothing here" shape: the screen's own icon inside soft rings, a plain title, a next step.
 export const EmptyState = ({
   icon: Icon,
   title,
@@ -19,16 +20,25 @@ export const EmptyState = ({
   action,
   className,
 }: EmptyStateProps) => (
-  <div className={cn('flex flex-col items-center gap-3 px-5 py-11 text-center', className)}>
+  <div className={cn('flex flex-col items-center gap-4 px-6 py-14 text-center', className)}>
     {Icon && (
-      <span className="grid size-11 place-items-center rounded-13 bg-surface-muted text-fg-subtle">
-        <Icon aria-hidden="true" className="size-4.75" strokeWidth={1.6} />
+      <span
+        aria-hidden="true"
+        className="grid size-24 place-items-center rounded-full bg-surface-subtle ring-1 ring-line-subtle"
+      >
+        <span className="grid size-16 place-items-center rounded-full bg-surface-muted ring-1 ring-line-subtle">
+          <span className="grid size-10 animate-pop place-items-center rounded-12 bg-surface text-fg-secondary shadow-card ring-1 ring-line">
+            <Icon className="size-5" strokeWidth={1.7} />
+          </span>
+        </span>
       </span>
     )}
     <div>
-      <p className="text-sm font-semibold">{title}</p>
+      <p className="text-base font-semibold tracking-[-0.01em]">{title}</p>
       {description && (
-        <p className="mt-1 max-w-[340px] text-xs leading-[1.55] text-fg-subtle">{description}</p>
+        <p className="mx-auto mt-1.5 max-w-sm text-13 leading-[1.55] text-fg-subtle">
+          {description}
+        </p>
       )}
     </div>
     {action}

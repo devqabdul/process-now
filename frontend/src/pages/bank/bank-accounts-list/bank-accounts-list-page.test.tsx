@@ -57,6 +57,16 @@ beforeEach(() => {
   created.mockReset();
   server.use(
     http.get(`${API}/bank-accounts`, () => envelope(ACCOUNTS)),
+    http.get(`${API}/bank-accounts/:id/statement`, () =>
+      envelope({
+        account: ACCOUNTS[0],
+        from: '2026-08-28',
+        to: '2026-09-26',
+        moneyIn: '0.00',
+        moneyOut: '0.00',
+        entries: [],
+      }),
+    ),
     http.post(`${API}/bank-accounts`, async ({ request }) => {
       const body = await request.json();
       created(body);
@@ -69,10 +79,11 @@ describe('BankAccountsListPage', () => {
   it('shows each balance, what went in and out, and which accounts are closed', async () => {
     renderPage();
 
-    expect(await screen.findByRole('link', { name: 'HDFC Current' })).toHaveAttribute(
-      'href',
-      '/bank/a-1',
+    expect(await screen.findByRole('button', { name: 'HDFC Current' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
     );
+    expect(screen.getByRole('link', { name: 'Statement' })).toHaveAttribute('href', '/bank/a-1');
     expect(screen.getByText('₹15,149.50')).toBeInTheDocument();
     expect(screen.getByText('₹1,850.50')).toBeInTheDocument();
     expect(screen.getByText('Closed')).toBeInTheDocument();

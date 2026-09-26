@@ -1,25 +1,60 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { isSuccess, safeApiError } from '@api/process-backend';
+import { fetchAllPages, isSuccess, safeApiError, usePagedList } from '@api/process-backend';
 import {
   companiesKeys,
+  getCompanies,
   resetAdminPassword,
   setCompanyActive,
-  useCompanies,
 } from '@api/process-backend/companies';
+import { buildCompanyColumns } from '@components/sections/admin/companies-table';
 import type { CompanyRow } from '@components/sections/admin/company-card';
+import type { PickerColumn } from '@components/ui/column-picker';
+import {
+  type ColumnVisibilityState,
+  type DataTableColumn,
+  exportRows,
+  pickerColumns,
+  type SortingState,
+} from '@components/ui/data-table';
+import { useCsvExport } from '@hooks/use-csv-export';
+import { useListParams } from '@hooks/use-list-params';
 import { useMediaQuery } from '@hooks/use-media-query';
+import { usePersistedState } from '@hooks/use-persisted-state';
 import { formatCreatedOn } from '@utils/format/date';
 
+const SORT_KEYS = ['createdAt', 'name'];
+
+const toRow = <T extends { createdAt: string }>(company: T) => ({
+  ...company,
+  createdOn: formatCreatedOn(company.createdAt),
+});
+
 export interface UseCompaniesListPageResult {
-  search: string;
-  setSearch: (value: string) => void;
   rows: CompanyRow[];
-  totalCount: number;
+  total: number;
+  page: number;
+  pageSize: number;
+  q: string;
+  sorting: SortingState;
+  columns: DataTableColumn<CompanyRow>[];
+  columnVisibility: ColumnVisibilityState;
+  pickerColumns: PickerColumn[];
   showTable: boolean;
   isLoading: boolean;
+  isRefreshing: boolean;
+  isLoadingMore: boolean;
   isError: boolean;
+  exportError: string | null;
+  setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
+  setQ: (q: string) => void;
+  setSorting: (sorting: SortingState) => void;
+  setColumnVisibility: (visibility: ColumnVisibilityState) => void;
+  toggleColumn: (id: string, visible: boolean) => void;
+  loadMore: () => void;
+  exportCsv: () => Promise<void>;
   resetTarget: CompanyRow | null;
   showPassword: boolean;
   resetDone: string | null;
@@ -41,26 +76,33 @@ export interface UseCompaniesListPageResult {
 
 export const useCompaniesListPage = (): UseCompaniesListPageResult => {
   // state
-  const [search, setSearch] = useState('');
   const [resetTarget, setResetTarget] = useState<CompanyRow | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [resetDone, setResetDone] = useState<string | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<CompanyRow | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [deactivateError, setDeactivateError] = useState<string | null>(null);
+  const [columnVisibility, setColumnVisibility] = usePersistedState<ColumnVisibilityState>(
+    'pn.table.companies.columns',
+    {},
+  );
 
   // wiring
   const queryClient = useQueryClient();
-  const { data, isPending, isError, refetch } = useCompanies();
-  // Tailwind's md: below it the same rows read better as cards.
-  const showTable = useMediaQuery('(min-width: 48rem)');
+  const list = useListParams(SORT_KEYS, '-createdAt');
+  const filters = { ...(list.q ? { q: list.q } : {}), ...(list.apiSort && { sort: list.apiSort }) };
+  // Tailwind's lg: below it the rows read better as cards that load more.
+  const showTable = useMediaQuery('(min-width: 64rem)');
+  const companies = usePagedList(
+    companiesKeys,
+    { ...filters, page: list.page, pageSize: list.pageSize },
+    showTable,
+    list.setPage,
+  );
+  const { exportError, runExport } = useCsvExport('companies');
 
   // derived
-  const companies = data ?? [];
-  const query = search.trim().toLowerCase();
-  const rows = companies
-    .filter((company) => company.name.toLowerCase().includes(query))
-    .map((company) => ({ ...company, createdOn: formatCreatedOn(company.createdAt) }));
+  const rows = companies.items.map(toRow);
 
   // callbacks
   const submitReset = async (password: string) => {
@@ -125,17 +167,56 @@ export const useCompaniesListPage = (): UseCompaniesListPageResult => {
     });
   };
 
-  const retry = () => void refetch();
-  const clearSearch = () => setSearch('');
+  const openDeactivate = (company: CompanyRow) => {
+    setResetDone(null);
+    setDeactivateError(null);
+    setDeactivateTarget(company);
+  };
+
+  const openReset = (company: CompanyRow) => {
+    setResetDone(null);
+    setShowPassword(false);
+    setResetTarget(company);
+  };
+
+  const activate = (company: CompanyRow) => void changeActive(company, true);
+
+  const columns = buildCompanyColumns({
+    onResetPassword: openReset,
+    onDeactivate: openDeactivate,
+    onActivate: activate,
+  });
+
+  const exportCsv = () =>
+    runExport(async () =>
+      exportRows(columns, (await fetchAllPages(getCompanies, filters)).map(toRow)),
+    );
 
   return {
-    search,
-    setSearch,
     rows,
-    totalCount: companies.length,
+    total: companies.total,
+    page: list.page,
+    pageSize: list.pageSize,
+    q: list.q,
+    sorting: list.sorting,
+    columns,
+    columnVisibility,
+    pickerColumns: pickerColumns(columns, columnVisibility),
     showTable,
-    isLoading: isPending,
-    isError,
+    isLoading: companies.isLoading,
+    isRefreshing: companies.isRefreshing,
+    isLoadingMore: companies.isLoadingMore,
+    isError: companies.isError,
+    exportError,
+    setPage: list.setPage,
+    setPageSize: list.setPageSize,
+    setQ: list.setQ,
+    setSorting: list.setSorting,
+    setColumnVisibility,
+    toggleColumn: (id, visible) =>
+      setColumnVisibility((previous) => ({ ...previous, [id]: visible })),
+    loadMore: companies.loadMore,
+    exportCsv,
     resetTarget,
     showPassword,
     resetDone,
@@ -143,23 +224,15 @@ export const useCompaniesListPage = (): UseCompaniesListPageResult => {
     deactivateTarget,
     isDeactivating,
     deactivateError,
-    openDeactivate: (company: CompanyRow) => {
-      setResetDone(null);
-      setDeactivateError(null);
-      setDeactivateTarget(company);
-    },
+    openDeactivate,
     closeDeactivate: () => setDeactivateTarget(null),
     confirmDeactivate,
-    activate: (company: CompanyRow) => void changeActive(company, true),
-    openReset: (company: CompanyRow) => {
-      setResetDone(null);
-      setShowPassword(false);
-      setResetTarget(company);
-    },
+    activate,
+    openReset,
     closeReset: () => setResetTarget(null),
     togglePassword: () => setShowPassword((shown) => !shown),
     submitReset,
-    retry,
-    clearSearch,
+    retry: companies.retry,
+    clearSearch: () => list.setQ(''),
   };
 };

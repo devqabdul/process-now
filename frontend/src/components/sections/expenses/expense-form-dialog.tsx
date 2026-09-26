@@ -1,18 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CalendarDays, IndianRupee, Landmark, NotebookPen, Tag, WalletMinimal } from 'lucide-react';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Link } from 'react-router';
 import * as z from 'zod/mini';
 
 import type { BankAccount } from '@api/process-backend/bank-accounts';
 import type { Expense } from '@api/process-backend/expenses';
+import { AmountWords } from '@components/shared/amount-words';
 import { FormField } from '@components/shared/form-field';
+import { SelectField } from '@components/shared/select-field';
 import { Button, buttonClasses } from '@components/ui/button';
 import { Dialog } from '@components/ui/dialog';
 import { FieldError } from '@components/ui/field-error';
-import { FieldLabel } from '@components/ui/field-label';
-import { InputShell, inputClasses } from '@components/ui/input-shell';
 import { cn } from '@lib/cn';
 
 const ICON = 'size-4 text-fg-subtle';
@@ -76,6 +76,7 @@ export const ExpenseFormDialog = ({
     notes: '',
   };
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -86,6 +87,7 @@ export const ExpenseFormDialog = ({
     defaultValues: empty,
     mode: 'onSubmit',
   });
+  const [watchedAmount] = useWatch({ control, name: ['amount'] });
   // An expense on an account closed since keeps showing it, so editing never moves it silently.
   const options =
     editing && !accounts.some((account) => account.id === editing.bankAccountId)
@@ -138,6 +140,8 @@ export const ExpenseFormDialog = ({
           <WalletMinimal aria-hidden="true" className="size-4.5" strokeWidth={1.8} />
         </span>
       }
+      // Nothing to fill in without an account: the small card, not a full-height sheet.
+      sheet={!noAccounts}
       busy={isSubmitting}
       onClose={onClose}
       onSubmit={(event) => void submit(event)}
@@ -157,37 +161,26 @@ export const ExpenseFormDialog = ({
       }
     >
       {noAccounts ? (
-        <p className="text-[12.5px] leading-[1.55] text-fg-secondary">
+        <p className="text-13 leading-[1.55] text-fg-secondary">
           Add “Cash in hand” or a bank account first, then come back to record what was spent.
         </p>
       ) : (
         <>
-          <div>
-            <FieldLabel htmlFor="expense-account" className="mb-2 block">
-              Paid from
-            </FieldLabel>
-            <InputShell
-              invalid={!!errors.bankAccountId}
-              leading={<Landmark className={ICON} strokeWidth={1.8} aria-hidden="true" />}
-            >
-              <select
-                id="expense-account"
-                required
-                aria-invalid={!!errors.bankAccountId}
-                aria-describedby={errors.bankAccountId ? 'expense-account-error' : undefined}
-                className={inputClasses}
-                {...register('bankAccountId')}
-              >
-                <option value="">Choose an account</option>
-                {options.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.name}
-                  </option>
-                ))}
-              </select>
-            </InputShell>
-            <FieldError id="expense-account-error" message={errors.bankAccountId?.message} />
-          </div>
+          <SelectField
+            id="expense-account"
+            label="Paid from"
+            required
+            error={errors.bankAccountId}
+            leading={<Landmark className={ICON} strokeWidth={1.8} aria-hidden="true" />}
+            {...register('bankAccountId')}
+          >
+            <option value="">Choose an account</option>
+            {options.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.name}
+              </option>
+            ))}
+          </SelectField>
 
           <FormField
             id="expense-category"
@@ -207,7 +200,7 @@ export const ExpenseFormDialog = ({
             ))}
           </datalist>
 
-          <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
+          <div className="grid gap-x-field-x gap-y-field sm:grid-cols-2">
             <FormField
               id="expense-amount"
               label="Amount"
@@ -216,6 +209,7 @@ export const ExpenseFormDialog = ({
               placeholder="450"
               error={errors.amount}
               leading={<IndianRupee className={ICON} strokeWidth={1.8} aria-hidden="true" />}
+              help={<AmountWords value={watchedAmount} money />}
               {...register('amount')}
             />
             <FormField

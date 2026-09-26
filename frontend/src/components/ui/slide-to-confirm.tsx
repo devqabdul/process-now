@@ -67,15 +67,13 @@ export const SlideToConfirm = ({
         style={{ left: KNOB + INSET }}
       >
         {busy ? (
-          <span className="flex items-center gap-2 text-[13.5px] font-semibold text-white">
+          <span className="flex items-center gap-2 text-sm font-semibold text-white">
             <Spinner className="size-4" /> {busyLabel}
           </span>
         ) : (
           <>
-            <span className="px-3 text-[13.5px] leading-tight font-semibold text-white">
-              {label}
-            </span>
-            <span className="px-3 text-[11.5px] leading-tight text-white/85">{hint}</span>
+            <span className="px-3 text-sm leading-tight font-semibold text-white">{label}</span>
+            <span className="px-3 text-xs leading-tight text-white/85">{hint}</span>
           </>
         )}
       </span>

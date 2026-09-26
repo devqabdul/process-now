@@ -69,6 +69,14 @@ const OrdersListPage = lazy(() =>
     default: m.OrdersListPage,
   })),
 );
+const BillsListPage = lazy(() =>
+  import('@pages/bills/bills-list/bills-list-page').then((m) => ({ default: m.BillsListPage })),
+);
+const CompanySettingsPage = lazy(() =>
+  import('@pages/settings/company-settings/company-settings-page').then((m) => ({
+    default: m.CompanySettingsPage,
+  })),
+);
 const ServiceTypesListPage = lazy(() =>
   import('@pages/service-types/service-types-list/service-types-list-page').then((m) => ({
     default: m.ServiceTypesListPage,
@@ -77,6 +85,11 @@ const ServiceTypesListPage = lazy(() =>
 const VendorsListPage = lazy(() =>
   import('@pages/vendors/vendors-list/vendors-list-page').then((m) => ({
     default: m.VendorsListPage,
+  })),
+);
+const VendorStatementPage = lazy(() =>
+  import('@pages/vendors/vendor-statement/vendor-statement-page').then((m) => ({
+    default: m.VendorStatementPage,
   })),
 );
 const BankAccountsListPage = lazy(() =>
@@ -94,18 +107,12 @@ const ExpensesListPage = lazy(() =>
     default: m.ExpensesListPage,
   })),
 );
-const ComingSoonPage = lazy(() =>
-  import('@pages/coming-soon/coming-soon-page').then((m) => ({ default: m.ComingSoonPage })),
+const DailyLogPage = lazy(() =>
+  import('@pages/daily-log/daily-log-page').then((m) => ({ default: m.DailyLogPage })),
 );
 const NotFoundPage = lazy(() =>
   import('@pages/not-found/not-found-page').then((m) => ({ default: m.NotFoundPage })),
 );
-
-// The placeholder screens share one chunk; the route's handle says which screen it stands in for.
-const comingSoon = (screen: string): RouteObject => ({
-  Component: ComingSoonPage,
-  handle: { screen },
-});
 
 export const routes: RouteObject[] = [
   {
@@ -137,9 +144,15 @@ export const routes: RouteObject[] = [
         children: [
           { index: true, Component: DashboardPage, handle: { screen: 'Dashboard' } },
           { path: 'orders', Component: OrdersListPage, handle: { screen: 'Orders' } },
-          { path: 'orders/new', ...comingSoon('New order') },
-          { path: 'bills', ...comingSoon('Bills') },
+          // New order is a drawer on the Orders list; old links still land there.
+          { path: 'orders/new', loader: () => redirect('/orders?new=1') },
+          { path: 'bills', Component: BillsListPage, handle: { screen: 'Bills' } },
           { path: 'vendors', Component: VendorsListPage, handle: { screen: 'Vendors' } },
+          {
+            path: 'vendors/:id',
+            Component: VendorStatementPage,
+            handle: { screen: 'Vendor report' },
+          },
           {
             path: 'service-types',
             Component: ServiceTypesListPage,
@@ -148,8 +161,8 @@ export const routes: RouteObject[] = [
           { path: 'bank', Component: BankAccountsListPage, handle: { screen: 'Bank' } },
           { path: 'bank/:id', Component: BankStatementPage, handle: { screen: 'Statement' } },
           { path: 'expenses', Component: ExpensesListPage, handle: { screen: 'Expenses' } },
-          { path: 'daily-log', ...comingSoon('Daily log') },
-          { path: 'settings', ...comingSoon('Settings') },
+          { path: 'daily-log', Component: DailyLogPage, handle: { screen: 'Daily log' } },
+          { path: 'settings', Component: CompanySettingsPage, handle: { screen: 'Settings' } },
         ],
       },
       {

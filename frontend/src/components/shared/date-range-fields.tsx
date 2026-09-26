@@ -4,7 +4,7 @@ import { cn } from '@lib/cn';
 import { shiftIsoDate } from '@utils/format/date';
 
 const INPUT =
-  'h-11 rounded-10 border border-line-field bg-surface px-3 font-mono text-[12.5px] text-fg outline-none transition-[border-color,box-shadow] duration-150 focus:border-focus focus:shadow-focus lg:h-9.5';
+  'h-11 rounded-10 border border-line-field bg-surface px-3 text-13 tabular-nums text-fg outline-none transition-[border-color,box-shadow] duration-150 focus:border-focus focus:shadow-focus lg:h-9.5';
 
 interface DateRangeFieldsProps {
   from: string;
@@ -41,7 +41,7 @@ export const DateRangeFields = ({ from, to, max, onChange, className }: DateRang
     <fieldset className={cn('flex flex-wrap items-end gap-2', className)}>
       <legend className="sr-only">Period</legend>
       <div className="flex flex-col gap-1">
-        <label htmlFor={fromId} className="text-[11.5px] font-semibold text-fg-secondary">
+        <label htmlFor={fromId} className="text-xs font-semibold text-fg-secondary">
           From
         </label>
         <input
@@ -55,7 +55,7 @@ export const DateRangeFields = ({ from, to, max, onChange, className }: DateRang
         />
       </div>
       <div className="flex flex-col gap-1">
-        <label htmlFor={toId} className="text-[11.5px] font-semibold text-fg-secondary">
+        <label htmlFor={toId} className="text-xs font-semibold text-fg-secondary">
           To
         </label>
         <input

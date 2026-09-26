@@ -5,6 +5,7 @@ import type { Order } from '@api/process-backend/orders';
 import { Button } from '@components/ui/button';
 import { Dialog } from '@components/ui/dialog';
 import { FieldError } from '@components/ui/field-error';
+import { AmountWords } from '@components/shared/amount-words';
 import { FieldLabel } from '@components/ui/field-label';
 import { InputShell, inputClasses } from '@components/ui/input-shell';
 import { formatQuantity } from '@utils/format/quantity';
@@ -73,16 +74,16 @@ export const ReturnOrderDialog = ({
         </Button>
       }
     >
-      <ul className="flex flex-col gap-2.5">
+      <ul className="flex flex-col gap-field">
         {order?.items.map((item) => {
           const value = quantities[item.id] ?? '';
           const tooMany = isQuantity(value) && Number(value) > Number(item.qtyIn);
           const bad = touched && (!isQuantity(value) || tooMany);
           return (
             <li key={item.id}>
-              <div className="mb-1.5 flex items-baseline justify-between gap-2">
+              <div className="mb-label flex items-baseline justify-between gap-2">
                 <FieldLabel htmlFor={`qty-${item.id}`}>{item.serviceType.name}</FieldLabel>
-                <span className="text-[11px] text-fg-subtle">
+                <span className="text-11 text-fg-subtle">
                   {formatQuantity(item.qtyIn, item.serviceType.unit)} in
                 </span>
               </div>
@@ -99,6 +100,11 @@ export const ReturnOrderDialog = ({
                   className={inputClasses}
                 />
               </InputShell>
+              {!bad && (
+                <p className="mt-label text-xs text-fg-subtle">
+                  <AmountWords value={value} unit={item.serviceType.unit} />
+                </p>
+              )}
               <FieldError
                 id={`qty-${item.id}-error`}
                 message={

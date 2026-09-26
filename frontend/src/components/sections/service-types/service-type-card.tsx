@@ -1,4 +1,4 @@
-import { Pencil, Power, PowerOff } from 'lucide-react';
+import { Pencil, Power, PowerOff, Trash2 } from 'lucide-react';
 
 import type { ServiceType } from '@api/process-backend/service-types';
 import { LetterTile } from '@components/ui/avatar';
@@ -27,12 +27,14 @@ export const BillOnBadge = ({ billOn }: { billOn: ServiceType['billOn'] }) => (
 export interface ServiceTypeActionHandlers {
   onEdit: (serviceType: ServiceType) => void;
   onSetActive: (serviceType: ServiceType, isActive: boolean) => void;
+  onDelete: (serviceType: ServiceType) => void;
 }
 
 export const ServiceTypeActions = ({
   serviceType,
   onEdit,
   onSetActive,
+  onDelete,
 }: { serviceType: ServiceType } & ServiceTypeActionHandlers) => (
   <Menu label={`Actions for ${serviceType.name}`} className="flex-none">
     {(close) => (
@@ -68,6 +70,16 @@ export const ServiceTypeActions = ({
             Deactivate
           </MenuItem>
         )}
+        <MenuItem
+          tone="danger"
+          onClick={() => {
+            close();
+            onDelete(serviceType);
+          }}
+        >
+          <Trash2 aria-hidden="true" className="size-3.5" strokeWidth={1.8} />
+          Delete
+        </MenuItem>
       </>
     )}
   </Menu>
@@ -77,48 +89,44 @@ export const ServiceTypeCard = ({
   serviceType,
   ...actions
 }: { serviceType: ServiceType } & ServiceTypeActionHandlers) => (
-  <li>
-    <Card className="p-3.5">
-      <div className="flex items-start gap-2.75">
-        <LetterTile name={serviceType.name} />
-        <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-1.5">
-            <span className="truncate text-sm font-semibold">{serviceType.name}</span>
-            {!serviceType.isActive && <Badge tone="neutral">Inactive</Badge>}
-          </p>
-          <p className="mt-1 text-[12.5px]">
-            <PriceLine serviceType={serviceType} />
-          </p>
-          <p className="mt-1 text-[11.5px] text-fg-subtle">
-            Costs {formatMoney(serviceType.baseCost)} to run
-          </p>
-          <p className="mt-1.5">
-            <BillOnBadge billOn={serviceType.billOn} />
-          </p>
-        </div>
-        <ServiceTypeActions serviceType={serviceType} {...actions} />
+  <Card className="p-3.5">
+    <div className="flex items-start gap-2.75">
+      <LetterTile name={serviceType.name} />
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-1.5">
+          <span className="truncate text-sm font-semibold">{serviceType.name}</span>
+          {!serviceType.isActive && <Badge tone="neutral">Inactive</Badge>}
+        </p>
+        <p className="mt-1 text-13">
+          <PriceLine serviceType={serviceType} />
+        </p>
+        <p className="mt-1 text-xs text-fg-subtle">
+          Costs {formatMoney(serviceType.baseCost)} to run
+        </p>
+        <p className="mt-1.5">
+          <BillOnBadge billOn={serviceType.billOn} />
+        </p>
       </div>
-    </Card>
-  </li>
+      <ServiceTypeActions serviceType={serviceType} {...actions} />
+    </div>
+  </Card>
 );
 
 export const ServiceTypeCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
   const style = { animationDelay: `${delay}s` };
   return (
-    <li>
-      <Card className="p-3.5">
-        <div className="flex items-start gap-2.75">
-          <Skeleton className="size-7 flex-none rounded-9" style={style} />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">
-              <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
-            </p>
-            <p className="mt-1">
-              <Skeleton className="inline-block h-2.25 w-1/3" style={style} />
-            </p>
-          </div>
+    <Card className="p-3.5">
+      <div className="flex items-start gap-2.75">
+        <Skeleton className="size-7 flex-none rounded-9" style={style} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">
+            <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
+          </p>
+          <p className="mt-1">
+            <Skeleton className="inline-block h-2.25 w-1/3" style={style} />
+          </p>
         </div>
-      </Card>
-    </li>
+      </div>
+    </Card>
   );
 };

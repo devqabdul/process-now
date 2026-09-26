@@ -1,10 +1,12 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { isSuccess, type NormalizedError, safeApiError } from '@api/process-backend';
 import {
   type BankAccount,
   bankAccountsKeys,
+  type BankStatement,
+  type StatementEntry,
   createBankAccount,
   updateBankAccount,
   useBankAccounts,
@@ -13,6 +15,10 @@ import type {
   BankAccountFormInput,
   BankAccountSaveResult,
 } from '@components/sections/bank/bank-account-form-dialog';
+import { RECENT_LIMIT } from '@components/sections/bank/recent-entries';
+import { useListParams } from '@hooks/use-list-params';
+import { usePersistedState } from '@hooks/use-persisted-state';
+import { formatShortDate, todayIso } from '@utils/format/date';
 
 const FIELDS = ['name', 'openingBalance', 'isActive'] as const;
 
@@ -26,10 +32,27 @@ const toSaveErrorMessage = (err: NormalizedError) =>
 
 export interface UseBankAccountsListPageResult {
   accounts: BankAccount[];
+  selected: BankAccount | undefined;
+  statement: BankStatement | undefined;
+  // The newest few entries of the period, for Recent.
+  recent: StatementEntry[];
+  from: string;
+  to: string;
+  today: string;
+  // "28 Aug – 26 Sep", under the chart's title.
+  period: string;
+  hideBalance: boolean;
   target: BankAccount | 'new' | null;
   saved: string | null;
   isLoading: boolean;
   isError: boolean;
+  isStatementLoading: boolean;
+  // A new range or account is loading; the previous one stays on screen, dimmed.
+  isStatementRefreshing: boolean;
+  isStatementError: boolean;
+  select: (id: string) => void;
+  setRange: (range: { from: string; to: string }) => void;
+  toggleHideBalance: () => void;
   openNew: () => void;
   openEdit: (account: BankAccount) => void;
   closeDialog: () => void;
@@ -37,19 +60,32 @@ export interface UseBankAccountsListPageResult {
   save: (values: BankAccountFormInput) => Promise<BankAccountSaveResult>;
   setActive: (account: BankAccount, isActive: boolean) => void;
   retry: () => void;
+  retryStatement: () => void;
 }
 
 export const useBankAccountsListPage = (): UseBankAccountsListPageResult => {
   // state
   const [target, setTarget] = useState<BankAccount | 'new' | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState('');
+  const [hideBalance, setHideBalance] = usePersistedState('pn.bank.hideBalance', false);
 
   // wiring
   const queryClient = useQueryClient();
   const { data, isPending, isError, refetch } = useBankAccounts();
+  const list = useListParams([], '');
+  const range = list.getRange();
+  const accounts = data ?? [];
+  // Until a card is picked, the first account is the one on show.
+  const selected = accounts.find((account) => account.id === selectedId) ?? accounts[0];
+  const statement = useQuery({
+    ...bankAccountsKeys.statement(selected?.id ?? '', range),
+    enabled: !!selected,
+    placeholderData: keepPreviousData,
+  });
 
   // derived
-  const accounts = data ?? [];
+  const today = todayIso();
 
   // callbacks
   const save = async (values: BankAccountFormInput): Promise<BankAccountSaveResult> => {
@@ -104,10 +140,24 @@ export const useBankAccountsListPage = (): UseBankAccountsListPageResult => {
 
   return {
     accounts,
+    selected,
+    statement: statement.data,
+    recent: statement.data?.entries.slice(0, RECENT_LIMIT) ?? [],
+    from: range.from,
+    to: range.to,
+    today,
+    period: `${formatShortDate(range.from)} – ${formatShortDate(range.to)}`,
+    hideBalance,
     target,
     saved,
     isLoading: isPending,
     isError,
+    isStatementLoading: statement.isPending,
+    isStatementRefreshing: statement.isPlaceholderData,
+    isStatementError: statement.isError,
+    select: setSelectedId,
+    setRange: list.setRange,
+    toggleHideBalance: () => setHideBalance((hidden) => !hidden),
     openNew: () => {
       setSaved(null);
       setTarget('new');
@@ -121,5 +171,6 @@ export const useBankAccountsListPage = (): UseBankAccountsListPageResult => {
     save,
     setActive: (account, isActive) => void setActive(account, isActive),
     retry: () => void refetch(),
+    retryStatement: () => void statement.refetch(),
   };
 };

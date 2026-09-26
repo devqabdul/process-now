@@ -1,4 +1,4 @@
-import type { PageQuery } from '../common.types';
+import type { ListParams } from '../common.types';
 import type { Order } from '../orders';
 
 // Derived from payments, never stored. A voided bill owes nothing.
@@ -44,9 +44,10 @@ export interface BillDetail extends BillAmounts {
   payments: Payment[];
 }
 
-export interface BillsQuery extends PageQuery {
-  // Voided bills are excluded unless asked for.
-  status?: BillStatus;
+// `q`: vendor name or bill number. Sort: issuedAt (default -issuedAt), billNo, total.
+export interface BillsQuery extends ListParams {
+  // Any of these; voided bills are excluded unless asked for.
+  status?: BillStatus[];
 }
 
 export interface RecordPaymentPayload {
@@ -55,4 +56,13 @@ export interface RecordPaymentPayload {
   method: PaymentMethod;
   // Must be an active account of this company.
   bankAccountId?: string;
+}
+
+/** A bill drawn as a PDF on request; nothing is stored, so it always matches the bill. */
+export interface BillPdf {
+  fileName: string;
+  contentType: string;
+  base64: string;
+  // Who to share it with: WhatsApp opens a chat to this number.
+  vendor: { name: string; phone: string };
 }

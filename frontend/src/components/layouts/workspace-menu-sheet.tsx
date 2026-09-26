@@ -22,7 +22,7 @@ interface WorkspaceMenuSheetProps {
 }
 
 const ROW =
-  'flex items-center gap-3 rounded-9 px-2.75 py-2.5 text-[13.5px] font-medium text-fg-secondary transition-colors duration-150 hover:bg-surface-muted hover:text-fg hover:no-underline';
+  'flex items-center gap-3 rounded-9 px-2.75 py-2.5 text-sm font-medium text-fg-secondary transition-colors duration-150 hover:bg-surface-muted hover:text-fg hover:no-underline';
 
 // Bottom sheet on phones; on desktop a popover beside the sidebar user row, or under the
 // top bar's avatar in the top-nav layout. Margin (not anchor positioning) places it,
@@ -62,8 +62,8 @@ export const WorkspaceMenuSheet = ({
       <div className="flex items-center gap-2.75 px-2.5 py-2.5">
         <Avatar name={identity.user.name} size="lg" className={accentAvatar(identity.accent)} />
         <div className="min-w-0">
-          <p className="truncate text-[13.5px] font-semibold">{identity.user.name}</p>
-          <p className="truncate text-[11.5px] text-fg-subtle">{identity.user.email}</p>
+          <p className="truncate text-sm font-semibold">{identity.user.name}</p>
+          <p className="truncate text-xs text-fg-subtle">{identity.user.email}</p>
         </div>
       </div>
 
@@ -110,7 +110,7 @@ export const WorkspaceMenuSheet = ({
             <Moon aria-hidden="true" className="size-4.25 flex-none" strokeWidth={1.7} />
           )}
           Dark theme
-          <span className="ml-auto text-[11.5px] font-semibold text-fg-subtle">
+          <span className="ml-auto text-xs font-semibold text-fg-subtle">
             {isDark ? 'On' : 'Off'}
           </span>
         </button>

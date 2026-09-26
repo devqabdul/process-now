@@ -22,7 +22,7 @@ interface BadgeProps {
 export const Badge = ({ tone = 'neutral', children, className }: BadgeProps) => (
   <span
     className={cn(
-      'inline-flex items-center rounded-7 px-2.5 py-1 text-[11px] leading-none font-semibold whitespace-nowrap',
+      'inline-flex items-center rounded-7 px-2.5 py-1 text-11 leading-none font-semibold whitespace-nowrap',
       TONES[tone],
       className,
     )}

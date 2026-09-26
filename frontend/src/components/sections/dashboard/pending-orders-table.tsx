@@ -3,6 +3,7 @@ import { PackageCheck, PackagePlus } from 'lucide-react';
 import { Link } from 'react-router';
 
 import type { Dashboard, DashboardPendingOrder } from '@api/process-backend/dashboard';
+import { CardList } from '@components/shared/card-list';
 import { EmptyState } from '@components/shared/empty-state';
 import { useMediaQuery } from '@hooks/use-media-query';
 import { Skeleton } from '@components/ui/skeleton';
@@ -16,7 +17,6 @@ import { formatShortDate } from '@utils/format/date';
 import { formatQuantity } from '@utils/format/quantity';
 
 const PREVIEW_ROWS = 5;
-const SKELETON_CARDS = Array.from({ length: PREVIEW_ROWS }, (_, i) => i * 0.08);
 
 const STATUS = {
   received: { label: 'Received', tone: 'info' },
@@ -30,7 +30,7 @@ const columns = helper.columns([
   helper.display({
     id: 'orderNo',
     header: 'Order',
-    meta: { className: 'w-24 font-mono text-fg-muted' },
+    meta: { className: 'w-24 font-mono whitespace-nowrap text-fg-muted' },
     cell: ({ row }) => row.original.orderNo,
   }),
   helper.display({
@@ -53,13 +53,13 @@ const columns = helper.columns([
   helper.display({
     id: 'qtyIn',
     header: 'Quantity in',
-    meta: { className: 'w-28 font-mono' },
+    meta: { className: 'w-28 text-right font-mono' },
     cell: ({ row }) => formatQuantity(row.original.qtyIn, row.original.unit),
   }),
   helper.display({
     id: 'receivedAt',
     header: 'Received',
-    meta: { className: 'w-24 font-mono text-fg-muted' },
+    meta: { className: 'w-24 text-fg-muted tabular-nums' },
     cell: ({ row }) => formatShortDate(row.original.receivedAt),
   }),
   helper.display({
@@ -83,53 +83,48 @@ const StatusBadge = ({ status }: { status: DashboardPendingOrder['status'] }) =>
   return <Badge tone={meta.tone}>{meta.label}</Badge>;
 };
 
-// Below md the six columns would need 680px and a sideways scroll — on the screen a shop
+// Below lg the six columns would need 680px and a sideways scroll — on the screen a shop
 // floor opens most often. The same row, stacked.
 const PendingOrderCard = ({ order }: { order: DashboardPendingOrder }) => (
-  <li className="flex items-start gap-2.5 border-b border-line-subtle py-2.75 last:border-0">
+  <div className="flex items-start gap-2.5">
     <LetterTile name={order.vendorName} size="sm" className="mt-0.5" />
     <div className="min-w-0 flex-1">
       <p className="flex items-baseline gap-2">
-        <span className="min-w-0 truncate text-[12.5px] font-medium">{order.vendorName}</span>
-        <span className="ml-auto flex-none font-mono text-[10.5px] text-fg-muted">
-          {order.orderNo}
-        </span>
+        <span className="min-w-0 truncate text-13 font-medium">{order.vendorName}</span>
+        <span className="ml-auto flex-none font-mono text-11 text-fg-muted">{order.orderNo}</span>
       </p>
-      <p className="mt-0.5 text-[11.5px] text-fg-subtle">
+      <p className="mt-0.5 text-xs text-fg-subtle">
         {order.serviceTypeName} · {formatQuantity(order.qtyIn, order.unit)}
       </p>
       <p className="mt-1.5 flex items-center gap-2">
         <StatusBadge status={order.status} />
-        <span className="font-mono text-[10.5px] text-fg-muted">
+        <span className="text-11 text-fg-muted tabular-nums">
           {formatShortDate(order.receivedAt)}
         </span>
       </p>
     </div>
-  </li>
+  </div>
 );
 
-const PendingOrderCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
-  const style = { animationDelay: `${delay}s` };
-  return (
-    <li className="flex items-start gap-2.5 border-b border-line-subtle py-2.75 last:border-0">
-      <Skeleton className="size-5 flex-none rounded-6" style={style} />
-      <div className="min-w-0 flex-1">
-        <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
-        <p className="mt-1.5">
-          <Skeleton className="inline-block h-2.25 w-3/5" style={style} />
-        </p>
-      </div>
-    </li>
-  );
-};
+const PendingOrderCardSkeleton = () => (
+  <div className="flex items-start gap-2.5">
+    <Skeleton className="size-5 flex-none rounded-6" />
+    <div className="min-w-0 flex-1">
+      <Skeleton className="inline-block h-2.75 w-2/5" />
+      <p className="mt-1.5">
+        <Skeleton className="inline-block h-2.25 w-3/5" />
+      </p>
+    </div>
+  </div>
+);
 
 interface PendingOrdersTableProps {
   dashboard: Dashboard | undefined;
 }
 
 export const PendingOrdersTable = ({ dashboard }: PendingOrdersTableProps) => {
-  // Tailwind's md: the same breakpoint every other list in the app switches at.
-  const showTable = useMediaQuery('(min-width: 48rem)');
+  // Tailwind's lg: the same breakpoint every other list in the app switches at.
+  const showTable = useMediaQuery('(min-width: 64rem)');
   const rows = dashboard?.pendingOrders.slice(0, PREVIEW_ROWS) ?? [];
 
   const empty = dashboard?.hasOrders ? (
@@ -145,7 +140,7 @@ export const PendingOrdersTable = ({ dashboard }: PendingOrdersTableProps) => {
       description="Take in your first lot of work and it will appear here until you return it to the vendor."
       action={
         <Link
-          to="/orders/new"
+          to="/orders?new=1"
           className={cn(buttonClasses('primary', 'md'), 'hover:text-primary-fg hover:no-underline')}
         >
           New order
@@ -159,13 +154,13 @@ export const PendingOrdersTable = ({ dashboard }: PendingOrdersTableProps) => {
       <div className="mb-3 flex items-center gap-2.5">
         <CardTitle>Pending orders</CardTitle>
         {dashboard && (
-          <span className="rounded-6 bg-surface-muted px-1.5 font-mono text-[10.5px] font-semibold text-fg-muted">
+          <span className="rounded-6 bg-surface-muted px-1.5 font-mono text-11 font-semibold text-fg-muted">
             {dashboard.pendingOrdersCount}
           </span>
         )}
         <Link
           to="/orders"
-          className="ml-auto flex h-11 items-center text-[12.5px] font-semibold text-link hover:text-link-hover lg:h-auto"
+          className="ml-auto flex h-11 items-center text-13 font-semibold text-link hover:text-link-hover lg:h-auto"
         >
           View all
         </Link>
@@ -183,12 +178,16 @@ export const PendingOrdersTable = ({ dashboard }: PendingOrdersTableProps) => {
           empty={empty}
         />
       ) : (
-        <ul aria-label="Pending orders">
-          {!dashboard
-            ? SKELETON_CARDS.map((delay) => <PendingOrderCardSkeleton key={delay} delay={delay} />)
-            : rows.map((order) => <PendingOrderCard key={order.id} order={order} />)}
-          {dashboard && rows.length === 0 && <li>{empty}</li>}
-        </ul>
+        <CardList
+          items={rows}
+          rowKey={(order) => order.id}
+          renderItem={(order) => <PendingOrderCard order={order} />}
+          label="Pending orders"
+          loading={!dashboard}
+          skeleton={<PendingOrderCardSkeleton />}
+          skeletonCount={PREVIEW_ROWS}
+          empty={empty}
+        />
       )}
     </Card>
   );

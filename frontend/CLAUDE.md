@@ -77,7 +77,9 @@ border (that's `--pn-line-field`). See
 
 **Modals** — `ui/dialog.tsx` is the **only** modal; never hand-roll a `<dialog>`. It fixes the
 anatomy — icon, title, description, body, **the one action full width**, centred Cancel beneath —
-so the deactivate and change-password dialogs differ only in their action. `ui/side-sheet.tsx` is
+so the deactivate and change-password dialogs differ only in their action. Create/edit forms pass
+`sheet`: the same anatomy docks right as a full-height sheet from `lg:` up and stays the card on
+phones. `ui/side-sheet.tsx` is
 the right-hand panel for a task belonging to the list behind it (`/admin/companies/new` is a
 **child route** of the list: a sheet on `lg:` and up, a full page below). `ui/slide-to-confirm.tsx`
 is the deliberate gesture for a destructive confirm — a native range input that springs back below
@@ -91,8 +93,16 @@ scrollbar into view; a z-index cannot fix an overflow clip. Scale: `z-30` header
 
 **Tables** — `ui/data-table.tsx` is the **only** table; never hand-roll a `<table>`. It is built
 on TanStack Table v9: a screen adds `createColumnHelper` column definitions (per-column layout in
-`meta.className`), not markup. Sorting is opt-in per column (`enableSorting: true` + an explicit
-`sortFn`); filtering, pagination and virtualisation are not registered yet. See
+`meta`: `className`, `label`, `exportValue`, `hideable`), not markup. Sorting is opt-in per column;
+paged lists sort server-side (`sorting` + `onSortingChange`, `utils/sort-param.ts` ⇄ the API's
+`sort`). The kit around it: `Pagination` in the table's `footer` on desktop, `CardList` +
+`LoadMore` on phones, `TableToolbar` (one row: debounced `q`, chips, Clear all, Columns, Export; a Filters sheet on phones), `FilterChip`/`DateRangeChip`, a `summary` line.
+`loading` = first-load skeletons, `refreshing` = old rows dimmed, `error`, `empty`. Above 100 rows
+(`VIRTUALIZE_THRESHOLD`) rows window-virtualise with `<table>` semantics kept. CSV export pages
+the API for **all** matching rows and guards formula injection (`utils/csv.ts`). Column visibility
+persists through `hooks/use-persisted-state.ts`. A list's page, size, `q`, sort and filters live
+in the URL (`hooks/use-list-params.ts`), so refresh and Back keep them; the data comes from
+`usePagedList` (see [`api-layer.md`](docs/conventions/api-layer.md#paged-lists)). See
 [`components.md`](docs/conventions/components.md#tables).
 
 **Memoization** — `useCallback`/`useMemo`/`memo` only when the identity is consumed: passed to a
@@ -172,9 +182,8 @@ src/
                  dashboard, orders, service-types, settings, vendors), each
                  types + service + query hooks + index
   pages/         routed pages — auth/login/, dashboard/, admin/companies-list/,
-                 admin/create-company/, coming-soon/, not-found/, plus empty folders
-                 scaffolded for the unbuilt screens (orders/, bills/, vendors/,
-                 service-types/, daily-log/, settings/)
+                 admin/create-company/, daily-log/, coming-soon/ (unrouted), not-found/,
+                 and the other workspace screens
   components/
     ui/          primitives (Button, Card, DataTable, InputShell, Badge, Skeleton, …)
     shared/      cross-page blocks (PageHeader, EmptyState, StatTile, LoadError,
@@ -185,9 +194,10 @@ src/
                  palette, menu sheet)
   lib/           cn.ts, auth/ (session + 401 listener), theme/ (pn.colorMode),
                  layout-mode/ (pn.layout), vitals/, notifications/ (empty)
-  hooks/         generic hooks — use-media-query.ts
+  hooks/         generic hooks — use-media-query, use-popover, use-persisted-state,
+                 use-list-params (a list's page/sort/q/filters in the URL), use-csv-export
   constants/     navigation.ts (both menus), roles.ts (role → home, accent → classes)
-  utils/         identifier.ts, format/ (date, money, quantity)
+  utils/         identifier, csv, pagination, sort-param, format/ (date, money, quantity)
   types/         cross-cutting primitives (@shared) — empty today
   test/          setup.ts, server.ts (MSW + envelope), axios-response.ts (axiosOk)
 ```
@@ -201,16 +211,14 @@ Dependency direction, enforced by `eslint-plugin-boundaries`:
 
 ## Known gaps — don't paper over them
 
-| Gap                                            | Where                                                                                     |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Notifications and company switching are shells | `grep -rn "TODO(api)" src/` — `workspace-notifications.tsx`, `workspace-company-chip.tsx` |
-| Three API domains have no screen yet           | `billing`, `daily-logs`, `settings` — folders scaffolded                                  |
-| Accent and radius presets have no UI           | CSS exists in `tailwind.css`; nothing sets `data-accent` / `data-radius`                  |
-| Three unbuilt screens route to ComingSoon      | `bills`, `daily-log`, `settings`; `orders/new` too (the list itself is built)             |
-| Fixed-px type scale                            | `text-[12.5px]` etc. — doesn't follow the browser's font-size preference                  |
-| No e2e tests, no coverage tooling              | See [`testing-and-env.md`](docs/conventions/testing-and-env.md#known-gaps)                |
-| No error monitoring, no product analytics      | Only Web Vitals (`src/lib/vitals/`), posted solely when `VITE_VITALS_URL` is set          |
-| Hosting target undecided                       | Image, nginx config, CI and release pipeline all exist — see [Deploy](README.md#deploy)   |
+| Gap                                       | Where                                                                                   |
+| ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| Notifications are a shell                 | `grep -rn "TODO(api)" src/` — `workspace-notifications.tsx`                             |
+| Accent and radius presets have no UI      | CSS exists in `tailwind.css`; nothing sets `data-accent` / `data-radius`                |
+| Fixed-px display headings                 | `text-[22px]` and up; body text is on the rem scale in `design-system.md`               |
+| No e2e tests, no coverage tooling         | See [`testing-and-env.md`](docs/conventions/testing-and-env.md#known-gaps)              |
+| No error monitoring, no product analytics | Only Web Vitals (`src/lib/vitals/`), posted solely when `VITE_VITALS_URL` is set        |
+| Hosting target undecided                  | Image, nginx config, CI and release pipeline all exist — see [Deploy](README.md#deploy) |
 
 ## Conventions index
 

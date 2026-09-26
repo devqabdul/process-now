@@ -75,6 +75,7 @@ export const VendorFormDialog = ({ target, onClose, onSubmit }: VendorFormDialog
           <Store aria-hidden="true" className="size-4.5" strokeWidth={1.8} />
         </span>
       }
+      sheet
       busy={isSubmitting}
       onClose={onClose}
       onSubmit={(event) => void submit(event)}
@@ -88,7 +89,7 @@ export const VendorFormDialog = ({ target, onClose, onSubmit }: VendorFormDialog
         id="vendor-name"
         label="Vendor name"
         required
-        placeholder="Ravi Textiles"
+        placeholder="Business or person's name"
         autoComplete="organization"
         error={errors.name}
         leading={<User className={ICON} strokeWidth={1.8} aria-hidden="true" />}

@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { IndianRupee, Landmark } from 'lucide-react';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod/mini';
 
 import type { BankAccount } from '@api/process-backend/bank-accounts';
+import { AmountWords } from '@components/shared/amount-words';
 import { FormField } from '@components/shared/form-field';
 import { Button } from '@components/ui/button';
 import { Dialog } from '@components/ui/dialog';
@@ -51,6 +52,7 @@ export const BankAccountFormDialog = ({
 }: BankAccountFormDialogProps) => {
   const editing = target !== null && target !== 'new' ? target : null;
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -61,6 +63,7 @@ export const BankAccountFormDialog = ({
     defaultValues: EMPTY,
     mode: 'onSubmit',
   });
+  const [watchedOpeningBalance] = useWatch({ control, name: ['openingBalance'] });
 
   // callbacks
   const submit = handleSubmit(async (values) => {
@@ -105,6 +108,7 @@ export const BankAccountFormDialog = ({
           <Landmark aria-hidden="true" className="size-4.5" strokeWidth={1.8} />
         </span>
       }
+      sheet
       busy={isSubmitting}
       onClose={onClose}
       onSubmit={(event) => void submit(event)}
@@ -132,6 +136,7 @@ export const BankAccountFormDialog = ({
         placeholder="0"
         error={errors.openingBalance}
         leading={<IndianRupee className={ICON} strokeWidth={1.8} aria-hidden="true" />}
+        help={<AmountWords value={watchedOpeningBalance} money />}
         {...register('openingBalance')}
       />
 
@@ -139,8 +144,8 @@ export const BankAccountFormDialog = ({
         <label className="flex cursor-pointer items-center gap-2.5">
           <input type="checkbox" className="size-4 accent-primary" {...register('isActive')} />
           <span className="min-w-0">
-            <span className="block text-[12.5px] font-medium">Open for new money</span>
-            <span className="block text-[11px] text-fg-subtle">
+            <span className="block text-13 font-medium">Open for new money</span>
+            <span className="block text-11 text-fg-subtle">
               Turn this off to close the account. Its history stays.
             </span>
           </span>

@@ -84,6 +84,12 @@ describe('route guards', () => {
     expect(company.state.location.pathname).toBe('/');
   });
 
+  it("doesn't sign anyone out when the API is down rather than saying no", async () => {
+    server.use(http.get(`${API}/auth/me`, () => envelope(null, 502)));
+    const router = await goTo('/');
+    expect(router.state.location.pathname).toBe('/');
+  });
+
   it('sends an already signed-in user away from the sign-in screen', async () => {
     signedInAs(COMPANY_ADMIN);
     const router = await goTo('/login');

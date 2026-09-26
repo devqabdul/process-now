@@ -119,6 +119,21 @@
   --pn-radius-16: 16px;
   --pn-radius-18: 18px;
   --pn-radius-20: 20px;
+
+  /* Form layout — one rhythm for every dialog, sheet and page form (design-system.md → Forms). */
+  --pn-control-h: 44px; /* the phone touch floor; 40px from lg up, below */
+  --pn-control-h-hero: 52px; /* sign-in only, where the field is the whole page */
+  --pn-space-label: 6px; /* label → control, and control → error */
+  --pn-space-field: 16px; /* field → field */
+  --pn-space-field-x: 12px; /* two fields side by side */
+  --pn-space-panel: 24px; /* sheet edge → content */
+  --pn-text-label: 0.8125rem; /* 13px: field and group labels */
+}
+
+@media (width >= 64rem) {
+  :root {
+    --pn-control-h: 40px;
+  }
 }
 
 /* ── Dark palette ────────────────────────────────────────── */
@@ -158,8 +173,10 @@
   /* Stays dark in dark mode: white sits on it, so it must not follow -strong upward. */
   --pn-danger-solid: #b5353a; /* 5.97:1 with white */
 
-  --pn-primary: #3b4453;
-  --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, white);
+  /* Ink flips to light so the one action per screen stays the brightest thing on it. */
+  --pn-primary: #e6e9ee; /* 15.19:1 with --pn-primary-fg */
+  --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, black);
+  --pn-primary-fg: #111417;
 
   --pn-link: #4db6a5;
   --pn-link-hover: #6ecdbd;
@@ -182,15 +199,18 @@
 /* ── Accent presets ──────────────────────────────────────── */
 :root[data-accent='amber'] {
   --pn-primary: #c9722f;
+  --pn-primary-fg: #ffffff;
   --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, black);
   --pn-link: #c9722f;
 }
 :root[data-accent='teal'] {
   --pn-primary: #17756c;
+  --pn-primary-fg: #ffffff;
   --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, black);
 }
 :root[data-accent='indigo'] {
   --pn-primary: #5b3fd1;
+  --pn-primary-fg: #ffffff;
   --pn-primary-hover: color-mix(in oklab, var(--pn-primary) 88%, black);
   --pn-link: #5b3fd1;
 }
@@ -309,6 +329,19 @@
   --radius-16: var(--pn-radius-16);
   --radius-18: var(--pn-radius-18);
   --radius-20: var(--pn-radius-20);
+
+  /* Form layout: h-control, gap-field, mb-label, p-panel, text-label, … */
+  --spacing-control: var(--pn-control-h);
+  --spacing-control-hero: var(--pn-control-h-hero);
+  --spacing-label: var(--pn-space-label);
+  --spacing-field: var(--pn-space-field);
+  --spacing-field-x: var(--pn-space-field-x);
+  --spacing-panel: var(--pn-space-panel);
+  --text-label: var(--pn-text-label);
+  /* Body type scale, named by px like the radii: 11 · xs 12 · 13 · sm 14 · base 16. In rem, so
+     it follows the browser's font-size preference. */
+  --text-11: 0.6875rem;
+  --text-13: 0.8125rem;
 
   --shadow-card: var(--pn-shadow-card);
   --shadow-raise: var(--pn-shadow-raise);
@@ -531,5 +564,56 @@
        lives on this pseudo-element, so pull the host's value through. */
     animation-delay: inherit;
     will-change: transform;
+  }
+
+  /* SelectField's open list, styled like ui/menu. Desktop pointers only: phones keep the system
+     picker, and browsers without base-select keep the native menu — both still a real <select>. */
+  .select-picker {
+    appearance: none;
+  }
+  @supports (appearance: base-select) {
+    @media (width >= 64rem) and (pointer: fine) {
+      .select-picker,
+      .select-picker::picker(select) {
+        appearance: base-select;
+      }
+      .select-picker {
+        display: flex;
+        align-items: center; /* base-select top-aligns the chosen value otherwise */
+        padding: 0;
+      }
+      .select-picker::picker-icon {
+        display: none; /* SelectField draws its own chevron */
+      }
+      .select-picker::picker(select) {
+        margin-block: 6px;
+        padding: 4px;
+        border: 1px solid var(--pn-line);
+        border-radius: var(--pn-radius-12);
+        background: var(--pn-surface);
+        color: var(--pn-fg);
+        box-shadow: var(--pn-shadow-popover);
+      }
+      .select-picker option {
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: var(--pn-radius-8);
+        font-size: 0.8125rem; /* text-13 */
+      }
+      .select-picker option:hover,
+      .select-picker option:focus-visible {
+        background: var(--pn-surface-muted);
+        outline: none;
+      }
+      .select-picker option:checked {
+        font-weight: 600;
+      }
+      .select-picker option::checkmark {
+        color: var(--pn-link);
+      }
+      .select-picker option:disabled {
+        color: var(--pn-fg-subtle);
+      }
+    }
   }
 }

@@ -81,9 +81,51 @@ rules land above the theme layer. No round trip to Google, no user IP leaving th
 Mono is used deliberately, not decoratively: panel headings (`CardTitle`), table headers, stat
 values, dates, GST numbers, keyboard hints — anything that reads as data.
 
-**Known gap:** there is no type scale token set. Sizes are written as fixed pixel arbitrary values
-(`text-[12.5px]`, `text-[13.5px]`) straight from the design file. They do not scale with the
-browser's font-size preference, and there is no single place to change them.
+Body text uses five steps, all in rem so they follow the browser's font-size preference:
+`text-11` (captions, meta, badges), `text-xs` (12px), `text-13` (dense UI, labels), `text-sm`
+(14px) and `text-base` (16px — also every phone input, so iOS doesn't zoom on focus). `text-11`
+and `text-13` are tokens in `tailwind.css`, registered in `src/lib/cn.ts`. Never a half pixel.
+
+**Known gap:** display headings (`text-[22px]` and up) are still fixed pixels.
+
+## Forms: spacing and anatomy
+
+One rhythm for every form, so a dialog, a sheet and a full page read as the same product. The
+values are **tokens** in `src/app/tailwind.css` (`--pn-*` in `:root`, mapped in `@theme inline`,
+registered in `src/lib/cn.ts`), and the shared parts (`ui/field-label`, `ui/input-shell`,
+`ui/field-error`, `shared/form-field`, `ui/dialog`) are built from them. A screen composes fields
+and gets the spacing for free; it never writes `gap-4` or `mb-2` between fields.
+
+| Token                 | Value                  | Utility                    | Used for                          |
+| --------------------- | ---------------------- | -------------------------- | --------------------------------- |
+| `--pn-control-h`      | 44px, **40px from lg** | `h-control`                | Every input, select, form control |
+| `--pn-control-h-hero` | 52px                   | `h-control-hero`           | Sign-in only (`size="lg"`)        |
+| `--pn-space-label`    | 6px                    | `mb-label`, `mt-label`     | Label → control, control → error  |
+| `--pn-space-field`    | 16px                   | `gap-field`, `gap-y-field` | Field → field                     |
+| `--pn-space-field-x`  | 12px                   | `gap-x-field-x`            | Two fields side by side           |
+| `--pn-space-panel`    | 24px                   | `p-panel`, `px-panel`      | Sheet edge → content              |
+| `--pn-text-label`     | 13px (0.8125rem)       | `text-label`               | Field and group labels            |
+
+A two-up row is `grid gap-x-field-x gap-y-field sm:grid-cols-2`. Change a value in `:root` and
+every form follows; that is the point of it being a token.
+
+**Control height.** `--pn-control-h` is 44px on phones (the touch floor) and switches to 40px
+from `lg:` up inside the token itself, so no component writes `h-11 lg:h-10`. `size="lg"` (52px)
+is kept for the sign-in screen, where the field is the whole page; nothing else uses it.
+
+**Errors don't reserve space.** An empty `FieldError` renders nothing. A reserved blank line under
+every field doubled the gap between fields and made a sheet look empty; the one-line shift when an
+error appears is the lesser cost. The exception is a single-field step (sign-in), which passes
+`reserve` so its button doesn't jump.
+
+**One label style.** Field labels and group labels (a `<legend>` over radio cards, a checkbox
+group) share `fieldLabelClasses`: 13px, semibold, `text-fg-secondary`. A legend in a different
+weight or colour reads as a second hierarchy that isn't there.
+
+**Sheet anatomy** (`Dialog` with `sheet`, from `lg:` up): a header pinned at the top (title,
+description, close button, `border-b`), a body that scrolls on its own with fields 16px apart,
+and a footer pinned at the bottom (`border-t`) holding the one full-width action with Cancel
+beneath. Below `lg:` the same dialog is the centred card.
 
 ## Role accents
 

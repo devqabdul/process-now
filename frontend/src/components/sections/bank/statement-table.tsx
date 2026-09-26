@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
 import type { StatementEntry } from '@api/process-backend/bank-accounts';
 import { DataTable, type DataTableFeatures } from '@components/ui/data-table';
@@ -15,20 +15,28 @@ const KIND = {
   out: { sign: '−', label: 'Paid out', className: 'text-danger-strong' },
 } as const;
 
-const columns = helper.columns([
+export const statementColumns = helper.columns([
   helper.display({
     id: 'date',
     header: 'Date',
-    meta: { className: 'w-[18%] whitespace-nowrap font-mono' },
+    meta: {
+      className: 'w-[18%] whitespace-nowrap tabular-nums',
+      exportValue: (entry) => entry.date,
+    },
     cell: ({ row }) => formatShortDate(row.original.date),
   }),
   helper.display({
     id: 'details',
     header: 'Details',
+    meta: {
+      hideable: false,
+      exportValue: (entry) =>
+        [KIND[entry.kind].label, entry.title, entry.detail].filter(Boolean).join(' · '),
+    },
     cell: ({ row }) => (
       <span className="block min-w-0">
         <span className="block truncate font-medium">{row.original.title}</span>
-        <span className="block truncate text-[11.5px] text-fg-subtle">
+        <span className="block truncate text-xs text-fg-subtle">
           {KIND[row.original.kind].label}
           {row.original.detail ? ` · ${row.original.detail}` : ''}
         </span>
@@ -38,7 +46,11 @@ const columns = helper.columns([
   helper.display({
     id: 'amount',
     header: 'Amount',
-    meta: { className: 'w-[24%] text-right whitespace-nowrap' },
+    meta: {
+      className: 'w-[24%] text-right whitespace-nowrap',
+      // Unsigned: the direction is in Details, and a leading "−" would read as a formula.
+      exportValue: (entry) => entry.amount,
+    },
     cell: ({ row }) => {
       const kind = KIND[row.original.kind];
       return (
@@ -51,20 +63,17 @@ const columns = helper.columns([
   }),
 ]);
 
-interface StatementTableProps {
-  rows: StatementEntry[];
-  loading: boolean;
-  empty: ReactNode;
-}
+type StatementTableProps = Omit<
+  ComponentProps<typeof DataTable<StatementEntry>>,
+  'columns' | 'label' | 'rowKey' | 'tableClassName'
+>;
 
-export const StatementTable = ({ rows, loading, empty }: StatementTableProps) => (
+export const StatementTable = (props: StatementTableProps) => (
   <DataTable
-    columns={columns}
-    rows={rows}
+    {...props}
+    columns={statementColumns}
     rowKey={(entry) => `${entry.kind}-${entry.id}`}
     label="Statement entries"
-    loading={loading}
-    empty={empty}
     tableClassName="min-w-[32rem]"
   />
 );

@@ -12,7 +12,7 @@ import { formatQuantity } from '@utils/format/quantity';
 
 export const ORDER_SKELETON_ROWS = 6;
 
-const STATUS: Record<OrderStatus, { label: string; tone: BadgeTone }> = {
+export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: BadgeTone }> = {
   received: { label: 'Received', tone: 'info' },
   processing: { label: 'Processing', tone: 'warning' },
   returned: { label: 'Returned', tone: 'success' },
@@ -21,7 +21,7 @@ const STATUS: Record<OrderStatus, { label: string; tone: BadgeTone }> = {
 
 export const OrderStatusBadge = ({ status }: { status: OrderStatus }) => {
   // A status the API adds later still renders as itself rather than crashing the page.
-  const meta = STATUS[status] ?? { label: status, tone: 'neutral' as const };
+  const meta = ORDER_STATUS[status] ?? { label: status, tone: 'neutral' as const };
   return <Badge tone={meta.tone}>{meta.label}</Badge>;
 };
 
@@ -104,53 +104,50 @@ export const OrderActions = ({
 };
 
 export const OrderCard = ({ order, ...actions }: { order: Order } & OrderActionHandlers) => (
-  <li>
-    <Card className="p-3.5">
-      <div className="flex items-start gap-2.75">
-        <LetterTile name={order.vendor.name} />
-        <div className="min-w-0 flex-1">
-          <p className="flex items-baseline gap-2">
-            <span className="min-w-0 truncate text-sm font-semibold">{order.vendor.name}</span>
-            <span className="ml-auto flex-none font-mono text-[10.5px] text-fg-muted">
-              {order.orderNo}
+  <Card className="p-3.5">
+    <div className="flex items-start gap-2.75">
+      <LetterTile name={order.vendor.name} />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-baseline gap-2">
+          <span className="min-w-0 truncate text-sm font-semibold">{order.vendor.name}</span>
+          <span className="ml-auto flex-none font-mono text-11 text-fg-muted">{order.orderNo}</span>
+        </p>
+        <p className="mt-1 text-xs text-fg-secondary">
+          <OrderServices order={order} /> · {orderQuantity(order)}
+        </p>
+        <p className="mt-1.5 flex flex-wrap items-center gap-2">
+          <OrderStatusBadge status={order.status} />
+          <span className="text-11 text-fg-muted tabular-nums">
+            {formatShortDate(order.receivedAt)}
+          </span>
+          {order.bill && (
+            <span className="font-mono text-11 text-fg-muted">
+              {order.bill.billNo} · {formatMoney(order.bill.total)}
             </span>
-          </p>
-          <p className="mt-1 text-[12px] text-fg-secondary">
-            <OrderServices order={order} /> · {orderQuantity(order)}
-          </p>
-          <p className="mt-1.5 flex flex-wrap items-center gap-2">
-            <OrderStatusBadge status={order.status} />
-            <span className="font-mono text-[10.5px] text-fg-muted">
-              {formatShortDate(order.receivedAt)}
-            </span>
-            {order.bill && (
-              <span className="font-mono text-[10.5px] text-fg-muted">
-                {order.bill.billNo} · {formatMoney(order.bill.total)}
-              </span>
-            )}
-          </p>
-        </div>
+          )}
+        </p>
+      </div>
+      {/* Held open when there is no menu, so the IDs line up down the list. */}
+      <div className="w-11 flex-none">
         <OrderActions order={order} {...actions} />
       </div>
-    </Card>
-  </li>
+    </div>
+  </Card>
 );
 
 export const OrderCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
   const style = { animationDelay: `${delay}s` };
   return (
-    <li>
-      <Card className="p-3.5">
-        <div className="flex items-start gap-2.75">
-          <Skeleton className="size-7 flex-none rounded-9" style={style} />
-          <div className="min-w-0 flex-1">
-            <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
-            <p className="mt-1.5">
-              <Skeleton className="inline-block h-2.25 w-3/5" style={style} />
-            </p>
-          </div>
+    <Card className="p-3.5">
+      <div className="flex items-start gap-2.75">
+        <Skeleton className="size-7 flex-none rounded-9" style={style} />
+        <div className="min-w-0 flex-1">
+          <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
+          <p className="mt-1.5">
+            <Skeleton className="inline-block h-2.25 w-3/5" style={style} />
+          </p>
         </div>
-      </Card>
-    </li>
+      </div>
+    </Card>
   );
 };

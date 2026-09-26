@@ -9,7 +9,7 @@ import type {
   UpdateExpensePayload,
 } from './expenses.types';
 
-export const getExpenses = (params: ExpensesQuery = {}) =>
+export const getExpenses = (params: ExpensesQuery) =>
   http.get<ApiEnvelope<ExpenseList>>('/expenses', { params });
 
 export const getExpenseCategories = () => http.get<ApiEnvelope<string[]>>('/expenses/categories');

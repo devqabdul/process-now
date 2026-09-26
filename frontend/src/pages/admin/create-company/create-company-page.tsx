@@ -67,7 +67,7 @@ export const CreateCompanyPage = () => {
           >
             {createdName} is on ProcessNow
           </h2>
-          <p className="mt-1.5 text-[12.5px] leading-[1.55] text-fg-subtle">
+          <p className="mt-1.5 text-13 leading-[1.55] text-fg-subtle">
             Its admin can sign in now with the mobile number or email you entered, and start adding
             service types, vendors and orders.
           </p>
@@ -84,13 +84,13 @@ export const CreateCompanyPage = () => {
         <form noValidate onSubmit={handleSubmit} className="mx-auto w-full max-w-2xl">
           <Card className="p-4 lg:p-5">
             <CardTitle className="text-fg-subtle">Company</CardTitle>
-            <div className="mt-3.5 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+            <div className="mt-3.5 grid gap-x-field-x gap-y-field sm:grid-cols-2">
               <FormField
                 id="name"
                 className="sm:col-span-2"
                 label="Company name"
                 required
-                placeholder="FuseNow"
+                placeholder="Company name"
                 autoComplete="organization"
                 error={errors.name}
                 leading={<Building2 className={ICON} strokeWidth={1.8} aria-hidden="true" />}
@@ -111,7 +111,7 @@ export const CreateCompanyPage = () => {
                 id="numberPrefix"
                 label="Number prefix"
                 hint="Optional"
-                placeholder="FN"
+                placeholder="AB"
                 autoCapitalize="characters"
                 spellCheck={false}
                 error={errors.numberPrefix}
@@ -123,24 +123,24 @@ export const CreateCompanyPage = () => {
 
           <Card className="mt-3.5 p-4 lg:p-5">
             <CardTitle className="text-fg-subtle">First company admin</CardTitle>
-            <p className="mt-2 text-[12px] leading-[1.55] text-fg-subtle">
+            <p className="mt-2 text-xs leading-[1.55] text-fg-subtle">
               This is the only login for the company. A mobile number or an email is enough — either
               one signs them in.
             </p>
-            <div className="mt-3.5 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+            <div className="mt-3.5 grid gap-x-field-x gap-y-field sm:grid-cols-2">
               <FormField
                 id="adminName"
                 className="sm:col-span-2"
                 label="Admin name"
                 required
-                placeholder="Asha Rao"
+                placeholder="Full name"
                 autoComplete="name"
                 error={errors.adminName}
                 leading={<User className={ICON} strokeWidth={1.8} aria-hidden="true" />}
                 {...register('adminName')}
               />
               {/* Either field satisfies the rule, so neither is required on its own. */}
-              <fieldset className="grid min-w-0 gap-x-4 gap-y-2 sm:col-span-2 sm:grid-cols-2">
+              <fieldset className="grid min-w-0 gap-x-field-x gap-y-field sm:col-span-2 sm:grid-cols-2">
                 <legend className="sr-only">
                   Add a mobile number or an email — the admin signs in with one of them.
                 </legend>
@@ -167,7 +167,7 @@ export const CreateCompanyPage = () => {
                   hint="Phone or email"
                   type="email"
                   inputMode="email"
-                  placeholder="asha@fusenow.in"
+                  placeholder="name@company.com"
                   autoComplete="email"
                   spellCheck={false}
                   error={errors.adminEmail}
@@ -209,7 +209,7 @@ export const CreateCompanyPage = () => {
           {errors.root?.message && (
             <p
               role="alert"
-              className="mt-3.5 rounded-12 border border-danger-line bg-danger-softer px-3.5 py-3 text-[12.5px] leading-[1.5] text-danger-strong"
+              className="mt-3.5 rounded-12 border border-danger-line bg-danger-softer px-3.5 py-3 text-13 leading-[1.5] text-danger-strong"
             >
               {errors.root.message}
             </p>

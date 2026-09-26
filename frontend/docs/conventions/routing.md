@@ -7,27 +7,26 @@ else comes from `react-router`. The route table is one flat file,
 
 ## The table
 
-| Path                                                                                        | Component                                                       | Guard                          | Chunk          |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------ | -------------- |
-| `/login`                                                                                    | `LoginPage` (it renders `AuthLayout` itself)                    | `guestOnly`                    | lazy           |
-| `/`                                                                                         | `WorkspaceShell` with `COMPANY_ADMIN_NAV`                       | `requireRole('company_admin')` | entry (layout) |
-| `/` (index)                                                                                 | `DashboardPage`                                                 | —                              | lazy           |
-| `/orders`, `/orders/new`, `/bills`, `/vendors`, `/service-types`, `/daily-log`, `/settings` | `ComingSoonPage` with the screen's name                         | —                              | lazy           |
-| `/bank`, `/bank/:id`, `/expenses`                                                           | `BankAccountsListPage`, `BankStatementPage`, `ExpensesListPage` | —                              | lazy           |
-| `/admin`                                                                                    | `WorkspaceShell` with `SUPER_ADMIN_NAV`                         | `requireRole('super_admin')`   | entry (layout) |
-| `/admin` (index)                                                                            | `loader: () => redirect('/admin/companies')`                    | —                              | —              |
-| `/admin/companies`                                                                          | `CompaniesListPage`                                             | —                              | lazy           |
-| `/admin/companies/new`                                                                      | `CreateCompanyPage`                                             | —                              | lazy           |
-| `*`                                                                                         | `NotFoundPage`                                                  | —                              | lazy           |
+| Path                                                                         | Component                                                       | Guard                          | Chunk          |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------ | -------------- |
+| `/login`                                                                     | `LoginPage` (it renders `AuthLayout` itself)                    | `guestOnly`                    | lazy           |
+| `/`                                                                          | `WorkspaceShell` with `COMPANY_ADMIN_NAV`                       | `requireRole('company_admin')` | entry (layout) |
+| `/` (index)                                                                  | `DashboardPage`                                                 | —                              | lazy           |
+| `/orders`, `/bills`, `/vendors`, `/service-types`, `/daily-log`, `/settings` | The screen's page                                               | —                              | lazy           |
+| `/bank`, `/bank/:id`, `/expenses`                                            | `BankAccountsListPage`, `BankStatementPage`, `ExpensesListPage` | —                              | lazy           |
+| `/admin`                                                                     | `WorkspaceShell` with `SUPER_ADMIN_NAV`                         | `requireRole('super_admin')`   | entry (layout) |
+| `/admin` (index)                                                             | `loader: () => redirect('/admin/companies')`                    | —                              | —              |
+| `/admin/companies`                                                           | `CompaniesListPage`                                             | —                              | lazy           |
+| `/admin/companies/new`                                                       | `CreateCompanyPage`                                             | —                              | lazy           |
+| `*`                                                                          | `NotFoundPage`                                                  | —                              | lazy           |
 
 `AuthLayout` is **not** a route: `login-page.tsx` wraps its own markup in it.
 
 Both workspaces mount the **same** `WorkspaceShell`; only the nav groups and the identity differ,
 and both come from the route as props (`src/constants/navigation.ts`).
 
-A route may also carry `handle: { screen }` — the name of the screen it stands for. `comingSoon()`
-sets it so one shared chunk can say which placeholder it is, and `WorkspaceShell` reads it for the
-loading message.
+A route may also carry `handle: { screen }` — the name of the screen it stands for.
+`WorkspaceShell` reads it for the loading message.
 
 ## Lazy vs non-lazy
 

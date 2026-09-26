@@ -1,5 +1,6 @@
 import { Plus, SearchX, Wrench, WifiOff } from 'lucide-react';
 
+import { DeleteServiceTypeDialog } from '@components/sections/service-types/delete-service-type-dialog';
 import { ServiceTypeFormDialog } from '@components/sections/service-types/service-type-form-dialog';
 import {
   SERVICE_TYPE_SKELETON_ROWS,
@@ -7,42 +8,67 @@ import {
   ServiceTypeCardSkeleton,
 } from '@components/sections/service-types/service-type-card';
 import { ServiceTypesTable } from '@components/sections/service-types/service-types-table';
+import { CardList } from '@components/shared/card-list';
 import { EmptyState } from '@components/shared/empty-state';
 import { LoadError } from '@components/shared/load-error';
 import { PageHeader } from '@components/shared/page-header';
+import { TableToolbar } from '@components/shared/table-toolbar';
 import { Toast } from '@components/shared/toast';
 import { Button } from '@components/ui/button';
-import { SearchInput } from '@components/ui/search-input';
+import { LoadMore } from '@components/ui/load-more';
+import { Pagination } from '@components/ui/pagination';
+import { formatCount } from '@utils/format/count';
 
 import { useServiceTypesListPage } from './use-service-types-list-page';
 
-const SKELETON_CARDS = Array.from({ length: SERVICE_TYPE_SKELETON_ROWS }, (_, i) => i * 0.08);
-
 export const ServiceTypesListPage = () => {
   const {
-    search,
-    setSearch,
     serviceTypes,
-    totalCount,
+    total,
+    page,
+    pageSize,
+    q,
+    sorting,
+    columns,
+    columnVisibility,
+    pickerColumns,
     target,
     saved,
     showTable,
     isLoading,
+    isRefreshing,
+    isLoadingMore,
     isError,
+    exportError,
+    setPage,
+    setPageSize,
+    setQ,
+    setSorting,
+    setColumnVisibility,
+    toggleColumn,
+    loadMore,
+    exportCsv,
     openNew,
     openEdit,
     closeDialog,
     dismissSaved,
+    undoRetire,
     save,
     setActive,
+    deleting,
+    isDeleting,
+    deleteError,
+    askDelete,
+    closeDelete,
+    confirmDelete,
     retry,
     clearSearch,
   } = useServiceTypesListPage();
 
-  const empty = search.trim() ? (
+  const empty = q ? (
     <EmptyState
       icon={SearchX}
-      title={`Nothing matches “${search.trim()}”`}
+      title={`Nothing matches “${q}”`}
       description="No service on this list has that name. Try fewer letters, or clear the search."
       action={
         <Button variant="secondary" size="sm" onClick={clearSearch}>
@@ -54,12 +80,25 @@ export const ServiceTypesListPage = () => {
     <EmptyState
       icon={Wrench}
       title="No services yet"
-      description="A service is a job you do and what you charge for one of them — fusing a piece, crushing a kilo. Orders are priced from this list."
+      description="A service is a job you do and what you charge for one of them — per piece, per kg, per hour. Orders are priced from this list."
       action={
-        <Button size="sm" onClick={openNew}>
+        <Button variant="secondary" size="sm" onClick={openNew}>
           Add the first service
         </Button>
       }
+    />
+  );
+
+  const summary = (
+    <strong className="font-semibold text-fg">{formatCount(total, 'service', 'services')}</strong>
+  );
+
+  const error = (
+    <LoadError
+      icon={WifiOff}
+      title="Couldn't load the services"
+      description="The list didn't come back. Check your connection and try again — nothing has been lost."
+      onRetry={retry}
     />
   );
 
@@ -77,64 +116,95 @@ export const ServiceTypesListPage = () => {
         }
       />
 
-      {isError ? (
-        <LoadError
-          icon={WifiOff}
-          title="Couldn't load the services"
-          description="The list didn't come back. Check your connection and try again — nothing has been lost."
-          onRetry={retry}
+      <TableToolbar
+        rowCount={total}
+        search={q}
+        onSearchChange={setQ}
+        searchLabel="Search services by name"
+        searchPlaceholder="Search services…"
+        columns={pickerColumns}
+        onToggleColumn={toggleColumn}
+        onExport={exportCsv}
+      />
+      {exportError && (
+        <p role="alert" className="text-13 text-danger-strong">
+          {exportError}
+        </p>
+      )}
+
+      {showTable ? (
+        <ServiceTypesTable
+          columns={columns}
+          rows={serviceTypes}
+          loading={isLoading}
+          refreshing={isRefreshing}
+          error={isError ? error : undefined}
+          empty={empty}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          summary={summary}
+          footer={
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          }
         />
       ) : (
-        <>
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            label="Search services by name"
-            placeholder="Search services…"
-            className="lg:max-w-xs"
-          />
-
-          {/* Below md a wide table would scroll sideways, so the same rows become cards. */}
-          {showTable ? (
-            <ServiceTypesTable
-              rows={serviceTypes}
-              loading={isLoading}
-              empty={empty}
+        <CardList
+          items={serviceTypes}
+          rowKey={(serviceType) => serviceType.id}
+          renderItem={(serviceType) => (
+            <ServiceTypeCard
+              serviceType={serviceType}
               onEdit={openEdit}
               onSetActive={setActive}
+              onDelete={askDelete}
             />
-          ) : (
-            <ul className="flex flex-col gap-2.5">
-              {isLoading
-                ? SKELETON_CARDS.map((delay) => (
-                    <ServiceTypeCardSkeleton key={delay} delay={delay} />
-                  ))
-                : serviceTypes.map((serviceType) => (
-                    <ServiceTypeCard
-                      key={serviceType.id}
-                      serviceType={serviceType}
-                      onEdit={openEdit}
-                      onSetActive={setActive}
-                    />
-                  ))}
-              {!isLoading && serviceTypes.length === 0 && (
-                <li className="rounded-14 border border-line-input">{empty}</li>
-              )}
-            </ul>
           )}
-
-          {/* Always mounted: a live region has to exist before the count it announces changes. */}
-          <p role="status" className="text-[11.5px] text-fg-subtle empty:sr-only">
-            {!isLoading && serviceTypes.length > 0
-              ? `Showing ${serviceTypes.length} of ${totalCount} ${totalCount === 1 ? 'service' : 'services'}.`
-              : null}
-          </p>
-        </>
+          label="Service types"
+          loading={isLoading}
+          skeleton={<ServiceTypeCardSkeleton />}
+          skeletonCount={SERVICE_TYPE_SKELETON_ROWS}
+          error={isError ? error : undefined}
+          empty={empty}
+          summary={summary}
+          footer={
+            <LoadMore
+              shown={serviceTypes.length}
+              total={total}
+              loading={isLoadingMore}
+              onLoadMore={loadMore}
+            />
+          }
+        />
       )}
+
+      {/* Always mounted: a live region has to exist before the count it announces changes. */}
+      <p role="status" className="sr-only">
+        {!isLoading && !isError ? `${formatCount(total, 'service', 'services')} found.` : null}
+      </p>
 
       <ServiceTypeFormDialog target={target} onClose={closeDialog} onSubmit={save} />
 
-      <Toast message={saved} onDismiss={dismissSaved} />
+      <DeleteServiceTypeDialog
+        serviceType={deleting}
+        isSubmitting={isDeleting}
+        error={deleteError}
+        onClose={closeDelete}
+        onConfirm={confirmDelete}
+      />
+
+      <Toast
+        message={saved}
+        onDismiss={dismissSaved}
+        action={undoRetire ? { label: 'Undo', onClick: undoRetire } : undefined}
+      />
     </>
   );
 };

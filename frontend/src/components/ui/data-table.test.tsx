@@ -1,9 +1,9 @@
 import { createColumnHelper } from '@tanstack/react-table';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { DataTable, type DataTableFeatures } from './data-table';
+import { DataTable, type DataTableFeatures, VIRTUALIZE_THRESHOLD } from './data-table';
 
 interface Widget {
   id: string;
@@ -92,5 +92,57 @@ describe('DataTable', () => {
 
     expect(header).toHaveAttribute('aria-sort', 'descending');
     expect(firstColumnValues()).toEqual(['Bolt', 'Anchor']);
+  });
+
+  it('keeps rows visible but busy while refreshing', () => {
+    renderTable({ refreshing: true });
+
+    expect(screen.getByRole('region', { name: 'Widgets' }).parentElement).toHaveAttribute(
+      'aria-busy',
+      'true',
+    );
+    expect(firstColumnValues()).toEqual(['Bolt', 'Anchor']);
+  });
+
+  it('renders the error node in place of rows', () => {
+    renderTable({ error: <p>Could not load</p> });
+
+    expect(screen.getByText('Could not load')).toBeInTheDocument();
+    expect(screen.queryByText('Bolt')).not.toBeInTheDocument();
+  });
+
+  it('leaves a hidden column out of the header and the rows', () => {
+    renderTable({ columnVisibility: { batch: false } });
+
+    expect(screen.queryByRole('columnheader', { name: /Batch/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('B-1')).not.toBeInTheDocument();
+  });
+
+  it('reports server-side sorting without reordering the rows', async () => {
+    const user = userEvent.setup();
+    const onSortingChange = vi.fn();
+    renderTable({ sorting: [], onSortingChange });
+
+    await user.click(screen.getByRole('button', { name: /Name/ }));
+
+    expect(onSortingChange).toHaveBeenCalledWith([{ id: 'name', desc: false }]);
+    expect(firstColumnValues()).toEqual(['Bolt', 'Anchor']);
+  });
+
+  it('renders every row up to the threshold and only a window beyond it', () => {
+    const many = (count: number) =>
+      Array.from({ length: count }, (_, i) => ({ id: `w${i}`, name: `W${i}`, batch: 'B' }));
+
+    const { unmount } = renderTable({ rows: many(VIRTUALIZE_THRESHOLD) });
+    expect(screen.getAllByRole('row')).toHaveLength(VIRTUALIZE_THRESHOLD + 1);
+    unmount();
+
+    renderTable({ rows: many(500) });
+    const table = screen.getByRole('table', { name: 'Widgets' });
+    expect(table).toHaveAttribute('aria-rowcount', '501');
+    const bodyRows = screen.getAllByRole('row').slice(1);
+    expect(bodyRows.length).toBeGreaterThan(0);
+    expect(bodyRows.length).toBeLessThan(500);
+    expect(bodyRows[0]).toHaveAttribute('aria-rowindex', '2');
   });
 });

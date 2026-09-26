@@ -53,40 +53,36 @@ export const ExpenseCard = ({
   expense,
   ...actions
 }: { expense: Expense } & ExpenseActionHandlers) => (
-  <li>
-    <Card className="p-3.5">
-      <div className="flex items-start gap-2.75">
-        <div className="min-w-0 flex-1">
-          <p className="flex items-baseline justify-between gap-2">
-            <span className="truncate text-sm font-semibold">{expense.category}</span>
-            <span className="font-mono text-sm font-semibold whitespace-nowrap">
-              {formatMoney(expense.amount)}
-            </span>
-          </p>
-          <p className="mt-1 text-[11.5px] text-fg-subtle">
-            <span className="font-mono">{formatShortDate(expense.spentOn)}</span> ·{' '}
-            {expense.bankAccount.name}
-          </p>
-          {expense.notes && <p className="mt-1 text-[11.5px] text-fg-subtle">{expense.notes}</p>}
-        </div>
-        <ExpenseActions expense={expense} {...actions} />
+  <Card className="p-3.5">
+    <div className="flex items-start gap-2.75">
+      <div className="min-w-0 flex-1">
+        <p className="flex items-baseline justify-between gap-2">
+          <span className="truncate text-sm font-semibold">{expense.category}</span>
+          <span className="font-mono text-sm font-semibold whitespace-nowrap">
+            {formatMoney(expense.amount)}
+          </span>
+        </p>
+        <p className="mt-1 text-xs text-fg-subtle">
+          <span className="tabular-nums">{formatShortDate(expense.spentOn)}</span> ·{' '}
+          {expense.bankAccount.name}
+        </p>
+        {expense.notes && <p className="mt-1 text-xs text-fg-subtle">{expense.notes}</p>}
       </div>
-    </Card>
-  </li>
+      <ExpenseActions expense={expense} {...actions} />
+    </div>
+  </Card>
 );
 
 export const ExpenseCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
   const style = { animationDelay: `${delay}s` };
   return (
-    <li>
-      <Card className="p-3.5">
-        <p className="text-sm font-semibold">
-          <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
-        </p>
-        <p className="mt-1">
-          <Skeleton className="inline-block h-2.25 w-1/3" style={style} />
-        </p>
-      </Card>
-    </li>
+    <Card className="p-3.5">
+      <p className="text-sm font-semibold">
+        <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
+      </p>
+      <p className="mt-1">
+        <Skeleton className="inline-block h-2.25 w-1/3" style={style} />
+      </p>
+    </Card>
   );
 };

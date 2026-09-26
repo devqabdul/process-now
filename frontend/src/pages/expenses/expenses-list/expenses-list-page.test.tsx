@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { BankAccount } from '@api/process-backend/bank-accounts';
 import type { Expense } from '@api/process-backend/expenses';
-import { API, envelope, server } from '@test/server';
+import { API, envelope, paged, server } from '@test/server';
 import { todayIso } from '@utils/format/date';
 
 import { ExpensesListPage } from './expenses-list-page';
@@ -82,9 +82,7 @@ beforeEach(() => {
     http.get(`${API}/bank-accounts`, () => envelope(ACCOUNTS)),
     http.get(`${API}/expenses/categories`, () => envelope(['Electricity', 'Salary'])),
     // The total is the server's, over the whole period — deliberately not the rows' sum.
-    http.get(`${API}/expenses`, () =>
-      envelope({ from: '2026-08-28', to: '2026-09-26', total: '9999.00', expenses: EXPENSES }),
-    ),
+    http.get(`${API}/expenses`, () => envelope({ ...paged(EXPENSES), sum: '9999.00' })),
     http.post(`${API}/expenses`, async ({ request }) => {
       const body = await request.json();
       created(body);

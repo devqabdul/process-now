@@ -96,10 +96,10 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
             </span>
             {!collapsed && (
               <span className="min-w-0">
-                <span className="block truncate text-[15.5px] leading-tight font-bold tracking-[-0.015em]">
+                <span className="block truncate text-base leading-tight font-bold tracking-[-0.015em]">
                   {identity.name}
                 </span>
-                <span className="block truncate text-[11px] text-fg-subtle">{identity.role}</span>
+                <span className="block truncate text-11 text-fg-subtle">{identity.role}</span>
               </span>
             )}
           </div>
@@ -111,33 +111,35 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
                   <p className="px-2.5 pb-2.5 text-xs text-fg-subtle">{group.title}</p>
                 )}
                 <div className="flex flex-col gap-0.75">
-                  {group.items.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      end={item.end ?? false}
-                      title={item.label}
-                      className={({ isActive }) =>
-                        cn(
-                          'flex items-center gap-3.25 rounded-10 px-2.75 py-2.75 text-[13.5px] font-medium text-fg-muted transition-colors duration-150 hover:bg-canvas-hover hover:text-fg hover:no-underline',
-                          isActive && 'bg-surface font-semibold text-fg',
-                          collapsed && 'justify-center',
-                        )
-                      }
-                    >
-                      <item.icon
-                        aria-hidden="true"
-                        className="size-4.25 flex-none"
-                        strokeWidth={1.7}
-                      />
-                      <span className={cn('truncate', collapsed && 'sr-only')}>{item.label}</span>
-                      {item.badge !== undefined && !collapsed && (
-                        <span className="ml-auto rounded-6 bg-surface-muted px-1.5 font-mono text-[10.5px] font-semibold text-fg-muted">
-                          {item.badge}
-                        </span>
-                      )}
-                    </NavLink>
-                  ))}
+                  {group.items
+                    .filter((item) => item.mobile !== 'action')
+                    .map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        end={item.end ?? false}
+                        title={item.label}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex items-center gap-3.25 rounded-10 px-2.75 py-2.75 text-sm font-medium text-fg-muted transition-colors duration-150 hover:bg-canvas-hover hover:text-fg hover:no-underline',
+                            isActive && 'bg-surface font-semibold text-fg',
+                            collapsed && 'justify-center',
+                          )
+                        }
+                      >
+                        <item.icon
+                          aria-hidden="true"
+                          className="size-4.25 flex-none"
+                          strokeWidth={1.7}
+                        />
+                        <span className={cn('truncate', collapsed && 'sr-only')}>{item.label}</span>
+                        {item.badge !== undefined && !collapsed && (
+                          <span className="ml-auto rounded-6 bg-surface-muted px-1.5 font-mono text-11 font-semibold text-fg-muted">
+                            {item.badge}
+                          </span>
+                        )}
+                      </NavLink>
+                    ))}
                 </div>
               </div>
             ))}
@@ -155,12 +157,8 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
             <Avatar name={identity.user.name} className={accentAvatar(identity.accent)} />
             {!collapsed && (
               <span className="min-w-0">
-                <span className="block truncate text-[12.5px] font-semibold">
-                  {identity.user.name}
-                </span>
-                <span className="block truncate text-[10.5px] text-fg-subtle">
-                  {identity.user.email}
-                </span>
+                <span className="block truncate text-13 font-semibold">{identity.user.name}</span>
+                <span className="block truncate text-11 text-fg-subtle">{identity.user.email}</span>
               </span>
             )}
             <span className="sr-only">Open account menu</span>
@@ -193,9 +191,13 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
               </span>
             )}
 
-            <WorkspaceCompanyChip name={identity.name} switchable={switchable} />
-
-            <span aria-hidden="true" className="hidden h-5.5 w-px flex-none bg-line lg:block" />
+            {/* A plain name only repeats the open sidebar's brand; the vendor jump always earns its place. */}
+            {(switchable || layout === 'top' || collapsed) && (
+              <>
+                <WorkspaceCompanyChip name={identity.name} switchable={switchable} />
+                <span aria-hidden="true" className="hidden h-5.5 w-px flex-none bg-line lg:block" />
+              </>
+            )}
 
             <span className="flex min-w-0 items-center gap-2.5 lg:hidden">
               <span
@@ -210,7 +212,7 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
                 <span className="block truncate text-sm font-bold tracking-[-0.015em]">
                   {identity.name}
                 </span>
-                <span className="block truncate text-[10.5px] text-fg-subtle">{identity.role}</span>
+                <span className="block truncate text-11 text-fg-subtle">{identity.role}</span>
               </span>
             </span>
 
@@ -237,7 +239,7 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
                 ))}
               </div>
 
-              {/* Phones reach both from the account sheet, which keeps the top bar to two icons. */}
+              {/* Phones reach both from the account sheet; the tab bar's More covers every screen. */}
               <WorkspaceNotifications className="hidden lg:block" />
               <ThemeToggle className="hidden lg:grid" />
               {/* Also in the account sheet, which is where phones reach it. */}
@@ -262,22 +264,24 @@ export const WorkspaceShell = ({ nav, identity }: WorkspaceShellProps) => {
               aria-label="Main"
               className="hidden flex-none items-center gap-1 overflow-x-auto border-b border-line-subtle px-3.5 py-1.75 lg:flex"
             >
-              {items.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.end ?? false}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex flex-none items-center gap-2 rounded-9 px-3 py-2.25 text-[13px] font-medium whitespace-nowrap text-fg-muted transition-colors duration-150 hover:bg-surface-muted hover:text-fg hover:no-underline',
-                      isActive && 'bg-surface-muted font-semibold text-fg',
-                    )
-                  }
-                >
-                  <item.icon aria-hidden="true" className="size-4 flex-none" strokeWidth={1.7} />
-                  {item.label}
-                </NavLink>
-              ))}
+              {items
+                .filter((item) => item.mobile !== 'action')
+                .map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end ?? false}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex flex-none items-center gap-2 rounded-9 px-3 py-2.25 text-13 font-medium whitespace-nowrap text-fg-muted transition-colors duration-150 hover:bg-surface-muted hover:text-fg hover:no-underline',
+                        isActive && 'bg-surface-muted font-semibold text-fg',
+                      )
+                    }
+                  >
+                    <item.icon aria-hidden="true" className="size-4 flex-none" strokeWidth={1.7} />
+                    {item.label}
+                  </NavLink>
+                ))}
             </nav>
           )}
 

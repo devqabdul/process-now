@@ -1,7 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
-import { isSuccess, type NormalizedError, safeApiError } from '@api/process-backend';
+import {
+  fetchAllPages,
+  isSuccess,
+  type NormalizedError,
+  safeApiError,
+  usePagedList,
+} from '@api/process-backend';
 import {
   type BankAccount,
   bankAccountsKeys,
@@ -13,16 +20,32 @@ import {
   deleteExpense,
   type Expense,
   expensesKeys,
+  getExpenses,
   updateExpense,
   useExpenseCategories,
-  useExpenses,
 } from '@api/process-backend/expenses';
 import type {
   ExpenseFormInput,
   ExpenseSaveResult,
 } from '@components/sections/expenses/expense-form-dialog';
+import { buildExpenseColumns } from '@components/sections/expenses/expenses-table';
+import type { PickerColumn } from '@components/ui/column-picker';
+import {
+  type ColumnVisibilityState,
+  type DataTableColumn,
+  exportRows,
+  pickerColumns,
+  type SortingState,
+} from '@components/ui/data-table';
+import type { FilterOption } from '@components/ui/filter-chip';
+import { useCsvExport } from '@hooks/use-csv-export';
+import { useListParams } from '@hooks/use-list-params';
 import { useMediaQuery } from '@hooks/use-media-query';
-import { shiftIsoDate, todayIso } from '@utils/format/date';
+import { usePersistedState } from '@hooks/use-persisted-state';
+import { DEFAULT_DATE_PRESET, matchPreset } from '@utils/date-presets';
+import { formatShortDate, todayIso } from '@utils/format/date';
+
+const SORT_KEYS = ['spentOn', 'amount', 'category'];
 
 const FIELDS = ['bankAccountId', 'category', 'amount', 'spentOn', 'notes'] as const;
 
@@ -47,12 +70,27 @@ export interface UseExpensesListPageResult {
   from: string;
   to: string;
   today: string;
-  accountId: string;
-  accounts: BankAccount[];
+  // "28 Aug – 26 Sep", for the summary line.
+  period: string;
+  accountFilter: string[];
+  accountOptions: FilterOption[];
   activeAccounts: BankAccount[];
   categories: string[];
+  categoryFilter: string[];
   expenses: Expense[];
-  total: string | undefined;
+  total: number;
+  // Money over every matching row, not just this page.
+  sum: string | undefined;
+  page: number;
+  pageSize: number;
+  q: string;
+  sorting: SortingState;
+  hasFilters: boolean;
+  // Chips holding a value (a non-default period counts), for the phone Filters badge.
+  activeFilters: number;
+  columns: DataTableColumn<Expense>[];
+  columnVisibility: ColumnVisibilityState;
+  pickerColumns: PickerColumn[];
   target: Expense | 'new' | null;
   deleting: Expense | null;
   isDeleting: boolean;
@@ -60,9 +98,22 @@ export interface UseExpensesListPageResult {
   saved: string | null;
   showTable: boolean;
   isLoading: boolean;
+  isRefreshing: boolean;
+  isLoadingMore: boolean;
   isError: boolean;
+  exportError: string | null;
   setRange: (range: { from: string; to: string }) => void;
-  setAccountId: (id: string) => void;
+  setAccount: (selected: string[]) => void;
+  setCategory: (selected: string[]) => void;
+  setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
+  setQ: (q: string) => void;
+  setSorting: (sorting: SortingState) => void;
+  clearFilters: () => void;
+  setColumnVisibility: (visibility: ColumnVisibilityState) => void;
+  toggleColumn: (id: string, visible: boolean) => void;
+  loadMore: () => void;
+  exportCsv: () => Promise<void>;
   openNew: () => void;
   openEdit: (expense: Expense) => void;
   closeDialog: () => void;
@@ -76,30 +127,53 @@ export interface UseExpensesListPageResult {
 
 export const useExpensesListPage = (): UseExpensesListPageResult => {
   // state
-  // The API's own default: the last 30 days, today included.
-  const [range, setRange] = useState(() => ({
-    from: shiftIsoDate(todayIso(), -29),
-    to: todayIso(),
-  }));
-  const [accountId, setAccountId] = useState('');
-  const [target, setTarget] = useState<Expense | 'new' | null>(null);
+  // Read first: the Bank page's "Add expense" arrives with the form to open.
+  const location = useLocation();
+  const [target, setTarget] = useState<Expense | 'new' | null>(() =>
+    (location.state as { addExpense?: boolean } | null)?.addExpense ? 'new' : null,
+  );
   const [deleting, setDeleting] = useState<Expense | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [columnVisibility, setColumnVisibility] = usePersistedState<ColumnVisibilityState>(
+    'pn.table.expenses.columns',
+    {},
+  );
 
   // wiring
   const queryClient = useQueryClient();
-  const { data, isPending, isError, refetch } = useExpenses(
-    accountId ? { ...range, bankAccountId: accountId } : range,
+  const navigate = useNavigate();
+  const list = useListParams(SORT_KEYS, '-spentOn');
+  const range = list.getRange();
+  const accountId = list.getId('account');
+  const categoryFilter = list.getMany('category');
+  const filters = {
+    ...range,
+    ...(list.q ? { q: list.q } : {}),
+    ...(list.apiSort && { sort: list.apiSort }),
+    ...(accountId ? { bankAccountId: accountId } : {}),
+    ...(categoryFilter.length > 0 ? { category: categoryFilter } : {}),
+  };
+  // Tailwind's lg: below it the rows read better as cards that load more.
+  const showTable = useMediaQuery('(min-width: 64rem)');
+  const rows = usePagedList(
+    expensesKeys,
+    { ...filters, page: list.page, pageSize: list.pageSize },
+    showTable,
+    list.setPage,
   );
   const { data: accounts = [] } = useBankAccounts();
   const { data: categories = [] } = useExpenseCategories();
-  // Tailwind's md: below it the same rows read better as cards.
-  const showTable = useMediaQuery('(min-width: 48rem)');
+  const { exportError, runExport } = useCsvExport('expenses');
 
   // derived
   const today = todayIso();
+  const hasFilters = !!list.q || !!accountId || categoryFilter.length > 0;
+  const activeFilters =
+    Number(matchPreset(range, today) !== DEFAULT_DATE_PRESET) +
+    Number(!!accountId) +
+    Number(categoryFilter.length > 0);
   const activeAccounts = accounts.filter((account) => account.isActive !== false);
 
   // callbacks
@@ -170,44 +244,93 @@ export const useExpensesListPage = (): UseExpensesListPageResult => {
     }
   };
 
+  const openEdit = (expense: Expense) => {
+    setSaved(null);
+    setTarget(expense);
+  };
+
+  const askDelete = (expense: Expense) => {
+    setSaved(null);
+    setDeleteError(null);
+    setDeleting(expense);
+  };
+
+  const columns = buildExpenseColumns({ onEdit: openEdit, onDelete: askDelete });
+
+  const exportCsv = () =>
+    runExport(async () => exportRows(columns, await fetchAllPages(getExpenses, filters)));
+
+  // effects
+  // Drop the Bank page's flag, so a refresh doesn't reopen the form.
+  useEffect(() => {
+    if (target !== 'new') return;
+    void navigate({ search: location.search }, { replace: true, state: null });
+  }, []);
+
   return {
     from: range.from,
     to: range.to,
     today,
-    accountId,
-    accounts,
+    period: `${formatShortDate(range.from)} – ${formatShortDate(range.to)}`,
+    accountFilter: accountId ? [accountId] : [],
+    accountOptions: accounts.map((account) => ({ value: account.id, label: account.name })),
     activeAccounts,
     categories,
-    expenses: data?.expenses ?? [],
-    total: data?.total,
+    categoryFilter,
+    expenses: rows.items,
+    total: rows.total,
+    sum: rows.data?.sum,
+    page: list.page,
+    pageSize: list.pageSize,
+    q: list.q,
+    sorting: list.sorting,
+    hasFilters,
+    activeFilters,
+    columns,
+    columnVisibility,
+    pickerColumns: pickerColumns(columns, columnVisibility),
     target,
     deleting,
     isDeleting,
     deleteError,
     saved,
     showTable,
-    isLoading: isPending,
-    isError,
-    setRange,
-    setAccountId,
+    isLoading: rows.isLoading,
+    isRefreshing: rows.isRefreshing,
+    isLoadingMore: rows.isLoadingMore,
+    isError: rows.isError,
+    exportError,
+    setRange: list.setRange,
+    setAccount: ([id]) => list.update({ account: id }),
+    setCategory: (selected) => list.update({ category: selected }),
+    setPage: list.setPage,
+    setPageSize: list.setPageSize,
+    setQ: list.setQ,
+    setSorting: list.setSorting,
+    clearFilters: () =>
+      list.update({
+        q: undefined,
+        from: undefined,
+        to: undefined,
+        account: undefined,
+        category: undefined,
+      }),
+    setColumnVisibility,
+    toggleColumn: (id, visible) =>
+      setColumnVisibility((previous) => ({ ...previous, [id]: visible })),
+    loadMore: rows.loadMore,
+    exportCsv,
     openNew: () => {
       setSaved(null);
       setTarget('new');
     },
-    openEdit: (expense) => {
-      setSaved(null);
-      setTarget(expense);
-    },
+    openEdit,
     closeDialog: () => setTarget(null),
     save,
-    askDelete: (expense) => {
-      setSaved(null);
-      setDeleteError(null);
-      setDeleting(expense);
-    },
+    askDelete,
     closeDelete: () => setDeleting(null),
     confirmDelete: () => void confirmDelete(),
     dismissSaved: () => setSaved(null),
-    retry: () => void refetch(),
+    retry: rows.retry,
   };
 };

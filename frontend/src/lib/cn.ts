@@ -23,6 +23,8 @@ const merge = extendTailwindMerge({
         { violet: ['', 'solid', 'soft'] },
         { brand: ['bg', 'fg', 'muted', 'faint', 'line'] },
       ],
+      spacing: ['control', 'control-hero', 'label', 'field', 'field-x', 'panel'],
+      text: ['label', '11', '13'],
       radius: ['6', '7', '8', '9', '10', '11', '12', '13', '14', '16', '18', '20'],
       shadow: ['card', 'raise', 'button', 'popover', 'dialog', 'modal', 'sheet', 'focus'],
       animate: [

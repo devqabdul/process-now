@@ -1,14 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { IndianRupee, Ruler, Wrench } from 'lucide-react';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod/mini';
 
 import type { BillOn, ServiceType } from '@api/process-backend/service-types';
+import { AmountWords } from '@components/shared/amount-words';
 import { FormField } from '@components/shared/form-field';
 import { Button } from '@components/ui/button';
 import { Dialog } from '@components/ui/dialog';
 import { FieldError } from '@components/ui/field-error';
+import { fieldLabelClasses } from '@components/ui/field-label';
+import { cn } from '@lib/cn';
 
 const ICON = 'size-4 text-fg-subtle';
 
@@ -68,6 +71,7 @@ export const ServiceTypeFormDialog = ({
 }: ServiceTypeFormDialogProps) => {
   const editing = target !== null && target !== 'new' ? target : null;
   const {
+    control,
     register,
     handleSubmit,
     reset,
@@ -76,6 +80,10 @@ export const ServiceTypeFormDialog = ({
   } = useForm<ServiceTypeFormInput>({
     resolver: zodResolver(serviceTypeSchema),
     defaultValues: EMPTY,
+  });
+  const [watchedBasePrice, watchedBaseCost] = useWatch({
+    control,
+    name: ['basePrice', 'baseCost'],
   });
 
   // callbacks
@@ -120,6 +128,7 @@ export const ServiceTypeFormDialog = ({
           <Wrench aria-hidden="true" className="size-4.5" strokeWidth={1.8} />
         </span>
       }
+      sheet
       busy={isSubmitting}
       onClose={onClose}
       onSubmit={(event) => void submit(event)}
@@ -133,7 +142,7 @@ export const ServiceTypeFormDialog = ({
         id="service-name"
         label="Service name"
         required
-        placeholder="Sherwani fusing"
+        placeholder="Name of the service you offer"
         error={errors.name}
         leading={<Wrench className={ICON} strokeWidth={1.8} aria-hidden="true" />}
         {...register('name')}
@@ -142,21 +151,21 @@ export const ServiceTypeFormDialog = ({
         id="service-unit"
         label="Charged per"
         required
-        placeholder="piece"
+        placeholder="e.g. piece, kg, hour"
         error={errors.unit}
         leading={<Ruler className={ICON} strokeWidth={1.8} aria-hidden="true" />}
         {...register('unit')}
       />
 
-      <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
+      <div className="grid gap-x-field-x gap-y-field sm:grid-cols-2">
         <FormField
           id="service-price"
           label="Price"
           required
           inputMode="decimal"
-          placeholder="45"
           error={errors.basePrice}
           leading={<IndianRupee className={ICON} strokeWidth={1.8} aria-hidden="true" />}
+          help={<AmountWords value={watchedBasePrice} money />}
           {...register('basePrice')}
         />
         <FormField
@@ -164,15 +173,15 @@ export const ServiceTypeFormDialog = ({
           label="Cost to run"
           required
           inputMode="decimal"
-          placeholder="12"
           error={errors.baseCost}
           leading={<IndianRupee className={ICON} strokeWidth={1.8} aria-hidden="true" />}
+          help={<AmountWords value={watchedBaseCost} money />}
           {...register('baseCost')}
         />
       </div>
 
       <fieldset>
-        <legend className="mb-2 text-[12.5px] font-medium">Bill on the quantity</legend>
+        <legend className={cn(fieldLabelClasses, 'mb-label')}>Bill on the quantity</legend>
         <div className="grid gap-2 sm:grid-cols-2">
           {BILL_ON.map((option) => (
             <label
@@ -186,10 +195,8 @@ export const ServiceTypeFormDialog = ({
                 {...register('billOn')}
               />
               <span className="min-w-0">
-                <span className="block text-[12.5px] font-medium">{option.label}</span>
-                <span className="block text-[11px] leading-[1.45] text-fg-subtle">
-                  {option.hint}
-                </span>
+                <span className="block text-13 font-medium">{option.label}</span>
+                <span className="block text-11 leading-[1.45] text-fg-subtle">{option.hint}</span>
               </span>
             </label>
           ))}
@@ -200,8 +207,8 @@ export const ServiceTypeFormDialog = ({
         <label className="flex cursor-pointer items-center gap-2.5">
           <input type="checkbox" className="size-4 accent-primary" {...register('isActive')} />
           <span className="min-w-0">
-            <span className="block text-[12.5px] font-medium">Available for new orders</span>
-            <span className="block text-[11px] text-fg-subtle">
+            <span className="block text-13 font-medium">Available for new orders</span>
+            <span className="block text-11 text-fg-subtle">
               Turn this off to retire it without touching past orders.
             </span>
           </span>

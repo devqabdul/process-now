@@ -4,10 +4,12 @@ import userEvent from '@testing-library/user-event';
 import { http } from 'msw';
 import { createMemoryRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Order } from '@api/process-backend/orders';
-import { API, envelope, server } from '@test/server';
+import type { ServiceType } from '@api/process-backend/service-types';
+import type { Vendor } from '@api/process-backend/vendors';
+import { API, envelope, paged, server } from '@test/server';
 
 import { OrdersListPage } from './orders-list-page';
 
@@ -49,10 +51,50 @@ const ORDERS: Order[] = [
   },
 ];
 
+const VENDORS: Vendor[] = [
+  {
+    id: 'v-1',
+    name: 'Ravi Textiles',
+    phone: '9800022222',
+    address: null,
+    isActive: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+  {
+    id: 'v-9',
+    name: 'Retired Mills',
+    phone: '9800099999',
+    address: null,
+    isActive: false,
+    createdAt: '2026-09-01T00:00:00.000Z',
+  },
+];
+
+const SERVICE: ServiceType = {
+  id: 'svc-1',
+  name: 'Collar fusing',
+  isActive: true,
+  unit: 'piece',
+  basePrice: '10.00',
+  baseCost: '4.00',
+  billOn: 'in',
+  options: [
+    {
+      group: 'Finish',
+      multi: false,
+      choices: [
+        { name: 'Soft', price: 0, cost: 0 },
+        { name: 'Stiff', price: 2.5, cost: 1 },
+      ],
+    },
+  ],
+  createdAt: '2026-09-01T00:00:00.000Z',
+};
+
 // jsdom reports no media match, so the card layout renders rather than the table.
-const renderPage = () => {
+const renderPage = (url = '/orders') => {
   const router = createMemoryRouter([{ path: '/orders', Component: OrdersListPage }], {
-    initialEntries: ['/orders'],
+    initialEntries: [url],
   });
   render(
     <QueryClientProvider
@@ -63,9 +105,30 @@ const renderPage = () => {
   );
 };
 
+// The vendor filter's options.
+beforeEach(() => {
+  server.use(http.get(`${API}/vendors`, () => envelope(paged([]))));
+});
+
 describe('OrdersListPage', () => {
+  it('filters by the vendor in the URL, where the header quick-jump lands', async () => {
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get(`${API}/orders`, ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return envelope(paged([ORDERS[0]]));
+      }),
+    );
+    renderPage('/orders?vendorId=v-1');
+
+    await screen.findByText('Ravi Textiles', undefined, { timeout: 3000 });
+    expect(seen[0]?.get('vendorId')).toBe('v-1');
+    // Newest first is the API's default order, so it isn't sent.
+    expect(seen[0]?.get('sort')).toBeNull();
+  });
+
   it('offers only the transitions an order is actually ready for', async () => {
-    server.use(http.get(`${API}/orders`, () => envelope(ORDERS)));
+    server.use(http.get(`${API}/orders`, () => envelope(paged(ORDERS))));
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('Ravi Textiles', undefined, { timeout: 3000 });
@@ -84,7 +147,7 @@ describe('OrdersListPage', () => {
   it('refuses to return more than came in', async () => {
     const sent = vi.fn();
     server.use(
-      http.get(`${API}/orders`, () => envelope(ORDERS)),
+      http.get(`${API}/orders`, () => envelope(paged(ORDERS))),
       http.post(`${API}/orders/:id/return`, () => {
         sent();
         return envelope(ORDERS[1]);
@@ -113,7 +176,7 @@ describe('OrdersListPage', () => {
   it('will not cancel an order without a reason', async () => {
     const sent = vi.fn();
     server.use(
-      http.get(`${API}/orders`, () => envelope(ORDERS)),
+      http.get(`${API}/orders`, () => envelope(paged(ORDERS))),
       http.post(`${API}/orders/:id/cancel`, async ({ request }) => {
         sent(await request.json());
         return envelope({ ...ORDERS[0], status: 'cancelled' });
@@ -134,5 +197,79 @@ describe('OrdersListPage', () => {
     await user.click(screen.getByRole('button', { name: 'Cancel this order' }));
 
     await waitFor(() => expect(sent).toHaveBeenCalledWith({ reason: 'Vendor withdrew the lot' }));
+  });
+
+  describe('new order drawer', () => {
+    beforeEach(() => {
+      server.use(
+        http.get(`${API}/orders`, () => envelope(paged([]))),
+        http.get(`${API}/vendors`, () => envelope(paged(VENDORS))),
+        http.get(`${API}/service-types`, () => envelope(paged([SERVICE]))),
+      );
+    });
+
+    it('opens from the Orders page and sends options and a numeric quantity, never a price', async () => {
+      const sent = vi.fn();
+      server.use(
+        http.post(`${API}/orders`, async ({ request }) => {
+          sent(await request.json());
+          return envelope({ ...ORDERS[0], orderNo: 'FN-0007' });
+        }),
+      );
+      const user = userEvent.setup();
+      // The phone's "+ New" button and the dashboard link land here.
+      renderPage('/orders?new=1');
+
+      const vendor = await screen.findByLabelText('Who sent it', undefined, { timeout: 3000 });
+      await waitFor(() =>
+        expect(screen.getByRole('option', { name: 'Ravi Textiles' })).toBeInTheDocument(),
+      );
+      // A retired vendor takes no new orders.
+      expect(screen.queryByRole('option', { name: 'Retired Mills' })).not.toBeInTheDocument();
+      await user.selectOptions(vendor, 'v-1');
+      await user.selectOptions(screen.getByLabelText('Service'), 'svc-1');
+      await user.click(screen.getByLabelText(/Stiff/));
+      await user.type(screen.getByLabelText('Quantity (piece)'), '120');
+
+      // (10 + 2.50) × 120, display only.
+      expect(screen.getAllByText(/1,500/).length).toBeGreaterThan(0);
+
+      await user.click(screen.getByRole('button', { name: 'Take in order' }));
+
+      await waitFor(() =>
+        expect(sent).toHaveBeenCalledWith({
+          vendorId: 'v-1',
+          items: [
+            {
+              serviceTypeId: 'svc-1',
+              selectedOptions: [{ group: 'Finish', choice: 'Stiff' }],
+              qtyIn: 120,
+            },
+          ],
+        }),
+      );
+      expect(
+        await screen.findByText('Order FN-0007 taken in from Ravi Textiles.'),
+      ).toBeInTheDocument();
+    });
+
+    it('will not take in an order without a vendor and a quantity', async () => {
+      const sent = vi.fn();
+      server.use(
+        http.post(`${API}/orders`, () => {
+          sent();
+          return envelope({});
+        }),
+      );
+      const user = userEvent.setup();
+      renderPage('/orders?new=1');
+      await screen.findByRole('option', { name: 'Ravi Textiles' }, { timeout: 3000 });
+
+      await user.click(screen.getByRole('button', { name: 'Take in order' }));
+
+      expect(await screen.findByText('Choose the vendor who sent the lot.')).toBeVisible();
+      expect(screen.getByText('Enter the quantity received, like 120 or 12.5.')).toBeVisible();
+      expect(sent).not.toHaveBeenCalled();
+    });
   });
 });

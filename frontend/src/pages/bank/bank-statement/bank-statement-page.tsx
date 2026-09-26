@@ -2,12 +2,15 @@ import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CalendarX, Landmark, WifiOff } 
 import { Link } from 'react-router';
 
 import { StatementTable } from '@components/sections/bank/statement-table';
-import { DateRangeFields } from '@components/shared/date-range-fields';
+import { DateRangeChip } from '@components/shared/date-range-chip';
 import { EmptyState } from '@components/shared/empty-state';
 import { LoadError } from '@components/shared/load-error';
 import { PageHeader } from '@components/shared/page-header';
 import { StatTile, StatTileSkeleton } from '@components/shared/stat-tile';
+import { TableToolbar } from '@components/shared/table-toolbar';
 import { Badge } from '@components/ui/badge';
+import { LoadMore } from '@components/ui/load-more';
+import { Pagination } from '@components/ui/pagination';
 import { formatMoney } from '@utils/format/money';
 
 import { useBankStatementPage } from './use-bank-statement-page';
@@ -21,11 +24,24 @@ export const BankStatementPage = () => {
     today,
     statement,
     account,
+    entries,
+    total,
+    page,
+    pageSize,
+    shown,
+    showPages,
     period,
+    activeFilters,
     isLoading,
     isError,
     isRetrying,
+    exportError,
     setRange,
+    clearRange,
+    setPage,
+    setPageSize,
+    loadMore,
+    exportCsv,
     retry,
   } = useBankStatementPage();
 
@@ -34,7 +50,7 @@ export const BankStatementPage = () => {
       <title>{`${account?.name ?? 'Statement'} · ProcessNow`}</title>
       <Link
         to="/bank"
-        className="flex h-11 w-fit items-center gap-1.5 text-[12.5px] font-semibold text-link hover:text-link-hover lg:h-auto"
+        className="flex h-11 w-fit items-center gap-1.5 text-13 font-semibold text-link hover:text-link-hover lg:h-auto"
       >
         <ArrowLeft aria-hidden="true" className="size-3.75" strokeWidth={2} />
         All accounts
@@ -47,6 +63,7 @@ export const BankStatementPage = () => {
 
       {isError ? (
         <LoadError
+          framed
           icon={WifiOff}
           title="Couldn't load this statement"
           description="The account didn't come back. Check your connection and try again — nothing has been lost."
@@ -55,7 +72,19 @@ export const BankStatementPage = () => {
         />
       ) : (
         <>
-          <DateRangeFields from={from} to={to} max={today} onChange={setRange} />
+          <TableToolbar
+            rowCount={total}
+            onExport={exportCsv}
+            activeFilters={activeFilters}
+            onClearAll={clearRange}
+          >
+            <DateRangeChip from={from} to={to} max={today} onChange={setRange} />
+          </TableToolbar>
+          {exportError && (
+            <p role="alert" className="text-13 text-danger-strong">
+              {exportError}
+            </p>
+          )}
 
           {statement ? (
             <div className={GRID}>
@@ -69,14 +98,14 @@ export const BankStatementPage = () => {
                 label="Money in"
                 value={formatMoney(statement.moneyIn)}
                 icon={ArrowDownLeft}
-                iconClassName="bg-success-solid"
+                iconClassName="bg-success-solid text-brand-fg"
                 sub="In this period"
               />
               <StatTile
                 label="Money out"
                 value={formatMoney(statement.moneyOut)}
                 icon={ArrowUpRight}
-                iconClassName="bg-danger-solid"
+                iconClassName="bg-danger-solid text-brand-fg"
                 sub="In this period"
               />
             </div>
@@ -89,8 +118,35 @@ export const BankStatementPage = () => {
           )}
 
           <StatementTable
-            rows={statement?.entries ?? []}
+            rows={entries}
             loading={isLoading}
+            summary={
+              statement && (
+                <>
+                  <strong className="font-mono font-semibold text-fg">
+                    {formatMoney(statement.moneyIn)}
+                  </strong>{' '}
+                  in ·{' '}
+                  <strong className="font-mono font-semibold text-fg">
+                    {formatMoney(statement.moneyOut)}
+                  </strong>{' '}
+                  out · {period}
+                </>
+              )
+            }
+            footer={
+              showPages ? (
+                <Pagination
+                  page={page}
+                  pageSize={pageSize}
+                  total={total}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              ) : total > 0 ? (
+                <LoadMore shown={shown} total={total} onLoadMore={loadMore} />
+              ) : undefined
+            }
             empty={
               <EmptyState
                 icon={CalendarX}

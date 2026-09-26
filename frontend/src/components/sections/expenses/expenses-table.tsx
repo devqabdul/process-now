@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
 import type { Expense } from '@api/process-backend/expenses';
 import { DataTable, type DataTableFeatures } from '@components/ui/data-table';
@@ -10,19 +10,22 @@ import { EXPENSE_SKELETON_ROWS, ExpenseActions, type ExpenseActionHandlers } fro
 
 const helper = createColumnHelper<DataTableFeatures, Expense>();
 
-const buildColumns = (actions: ExpenseActionHandlers) =>
+// Column ids that sort are the API's sort keys: spentOn, category, amount.
+export const buildExpenseColumns = (actions: ExpenseActionHandlers) =>
   helper.columns([
-    helper.display({
-      id: 'date',
+    helper.accessor('spentOn', {
       header: 'Date',
-      meta: { className: 'w-[12%] whitespace-nowrap font-mono' },
+      enableSorting: true,
+      meta: {
+        className: 'w-[12%] whitespace-nowrap tabular-nums',
+        exportValue: (expense) => expense.spentOn,
+      },
       cell: ({ row }) => formatShortDate(row.original.spentOn),
     }),
     helper.accessor('category', {
       header: 'Category',
       enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-[22%]' },
+      meta: { className: 'w-[22%]', hideable: false, exportValue: (expense) => expense.category },
       cell: ({ row }) => (
         <span className="block min-w-0 truncate font-medium">{row.original.category}</span>
       ),
@@ -30,7 +33,7 @@ const buildColumns = (actions: ExpenseActionHandlers) =>
     helper.display({
       id: 'account',
       header: 'Paid from',
-      meta: { className: 'w-[20%]' },
+      meta: { className: 'w-[20%]', exportValue: (expense) => expense.bankAccount.name },
       cell: ({ row }) => (
         <span className="block min-w-0 truncate">{row.original.bankAccount.name}</span>
       ),
@@ -38,14 +41,18 @@ const buildColumns = (actions: ExpenseActionHandlers) =>
     helper.display({
       id: 'notes',
       header: 'Notes',
+      meta: { exportValue: (expense) => expense.notes },
       cell: ({ row }) => (
         <span className="block min-w-0 truncate text-fg-subtle">{row.original.notes || '—'}</span>
       ),
     }),
-    helper.display({
-      id: 'amount',
+    helper.accessor('amount', {
       header: 'Amount',
-      meta: { className: 'w-[14%] text-right whitespace-nowrap' },
+      enableSorting: true,
+      meta: {
+        className: 'w-[14%] text-right whitespace-nowrap',
+        exportValue: (expense) => expense.amount,
+      },
       cell: ({ row }) => (
         <span className="font-mono font-semibold">{formatMoney(row.original.amount)}</span>
       ),
@@ -53,25 +60,21 @@ const buildColumns = (actions: ExpenseActionHandlers) =>
     helper.display({
       id: 'actions',
       header: '',
-      meta: { className: 'w-12' },
+      meta: { label: 'Actions', hideable: false },
       cell: ({ row }) => <ExpenseActions expense={row.original} {...actions} />,
     }),
   ]);
 
-interface ExpensesTableProps extends ExpenseActionHandlers {
-  rows: Expense[];
-  loading: boolean;
-  empty: ReactNode;
-}
+type ExpensesTableProps = Omit<
+  ComponentProps<typeof DataTable<Expense>>,
+  'label' | 'rowKey' | 'skeletonRows'
+>;
 
-export const ExpensesTable = ({ rows, loading, empty, ...actions }: ExpensesTableProps) => (
+export const ExpensesTable = (props: ExpensesTableProps) => (
   <DataTable
-    columns={buildColumns(actions)}
-    rows={rows}
-    rowKey={(expense) => expense.id}
+    {...props}
     label="Expenses"
-    loading={loading}
+    rowKey={(expense) => expense.id}
     skeletonRows={EXPENSE_SKELETON_ROWS}
-    empty={empty}
   />
 );

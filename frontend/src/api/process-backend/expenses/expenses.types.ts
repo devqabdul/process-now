@@ -1,3 +1,5 @@
+import type { ListParams, Paged } from '../common.types';
+
 export interface Expense {
   id: string;
   companyId: string;
@@ -15,21 +17,19 @@ export interface Expense {
   updatedBy: string | null;
 }
 
-export interface ExpensesQuery {
+// `q` matches category or notes. Sort: spentOn (default -spentOn), amount, category.
+export interface ExpensesQuery extends ListParams {
   // Defaults: the last 30 days up to today.
   from?: string;
   to?: string;
   bankAccountId?: string;
-  category?: string;
+  // Any of these, case-insensitive.
+  category?: string[];
 }
 
-export interface ExpenseList {
-  from: string;
-  to: string;
-  // Summed by the API over the whole filtered period.
-  total: string;
-  // Newest first.
-  expenses: Expense[];
+export interface ExpenseList extends Paged<Expense> {
+  // Money total of every matching row, not just this page.
+  sum: string;
 }
 
 export interface CreateExpensePayload {

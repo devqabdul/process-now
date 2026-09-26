@@ -24,7 +24,7 @@ export const LoadingMark = ({ screen, message }: LoadingMarkProps) => {
       </span>
       <span className="flex items-center gap-2.5">
         <span className="size-3.5 animate-spin rounded-full border-2 border-line-strong border-t-fg" />
-        <span className="text-[12.5px] text-fg-subtle">{label}</span>
+        <span className="text-13 text-fg-subtle">{label}</span>
       </span>
     </div>
   );

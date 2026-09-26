@@ -31,7 +31,7 @@ export const StatusBadge = ({ isActive }: { isActive: boolean }) =>
 
 export const GstMarker = ({ gstNo }: { gstNo: string | null }) =>
   gstNo ? (
-    <span className="font-mono text-[11px] text-fg-subtle">{gstNo}</span>
+    <span className="font-mono text-11 text-fg-subtle">{gstNo}</span>
   ) : (
     <Badge tone="neutral">No GST</Badge>
   );
@@ -91,58 +91,54 @@ export const CompanyCard = ({
   company,
   ...actions
 }: { company: CompanyRow } & CompanyActionHandlers) => (
-  <li>
-    <Card className="p-3.5">
-      <div className="flex items-start gap-2.75">
-        <LetterTile name={company.name} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">{company.name}</p>
-          <p className="mt-1.25 flex flex-wrap items-center gap-1.5">
-            <GstMarker gstNo={company.gstNo} />
-            <StatusBadge isActive={company.isActive} />
-          </p>
-        </div>
-        <span className="flex-none font-mono text-[10.5px] whitespace-nowrap text-fg-subtle">
-          {company.createdOn}
-        </span>
-        <CompanyActions company={company} {...actions} />
-      </div>
-
-      <div className="mt-3 border-t border-line-subtle pt-2.75">
-        <p className="text-[12.5px] font-medium">{company.admin.name}</p>
-        <p className="mt-0.5 text-[11.5px] text-fg-subtle">
-          <AdminContact admin={company.admin} />
+  <Card className="p-3.5">
+    <div className="flex items-start gap-2.75">
+      <LetterTile name={company.name} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold">{company.name}</p>
+        <p className="mt-1.25 flex flex-wrap items-center gap-1.5">
+          <GstMarker gstNo={company.gstNo} />
+          <StatusBadge isActive={company.isActive} />
         </p>
       </div>
-    </Card>
-  </li>
+      <span className="flex-none text-11 whitespace-nowrap text-fg-subtle tabular-nums">
+        {company.createdOn}
+      </span>
+      <CompanyActions company={company} {...actions} />
+    </div>
+
+    <div className="mt-3 border-t border-line-subtle pt-2.75">
+      <p className="text-13 font-medium">{company.admin.name}</p>
+      <p className="mt-0.5 text-xs text-fg-subtle">
+        <AdminContact admin={company.admin} />
+      </p>
+    </div>
+  </Card>
 );
 
 export const CompanyCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
   const style = { animationDelay: `${delay}s` };
   return (
-    <li>
-      <Card className="p-3.5">
-        <div className="flex items-start gap-2.75">
-          <Skeleton className="size-7 flex-none rounded-9" style={style} />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold">
-              <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
-            </p>
-            <p className="mt-1.25">
-              <Skeleton className="inline-block h-2.25 w-3/5" style={style} />
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 border-t border-line-subtle pt-2.75">
-          <p className="text-[12.5px]">
-            <Skeleton className="inline-block w-1/3" style={style} />
+    <Card className="p-3.5">
+      <div className="flex items-start gap-2.75">
+        <Skeleton className="size-7 flex-none rounded-9" style={style} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold">
+            <Skeleton className="inline-block h-2.75 w-2/5" style={style} />
           </p>
-          <p className="mt-0.5 text-[11.5px]">
-            <Skeleton className="inline-block w-3/5" style={style} />
+          <p className="mt-1.25">
+            <Skeleton className="inline-block h-2.25 w-3/5" style={style} />
           </p>
         </div>
-      </Card>
-    </li>
+      </div>
+      <div className="mt-3 border-t border-line-subtle pt-2.75">
+        <p className="text-13">
+          <Skeleton className="inline-block w-1/3" style={style} />
+        </p>
+        <p className="mt-0.5 text-xs">
+          <Skeleton className="inline-block w-3/5" style={style} />
+        </p>
+      </div>
+    </Card>
   );
 };

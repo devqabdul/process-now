@@ -6,4 +6,9 @@ export {
   getExpenses,
   updateExpense,
 } from './expenses-service';
-export { expensesKeys, useExpenseCategories, useExpenses } from './use-expenses-queries';
+export {
+  expensesKeys,
+  useExpenseCategories,
+  useExpenses,
+  useExpensesInfinite,
+} from './use-expenses-queries';

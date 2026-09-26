@@ -43,7 +43,7 @@ export const RouteErrorBoundary = () => {
     <main className="grid min-h-dvh place-items-center bg-canvas p-6">
       <div className="w-full max-w-[420px] rounded-16 border border-line bg-surface p-7 shadow-card">
         <h1 className="mb-2 text-xl font-semibold tracking-[-0.02em]">{title}</h1>
-        <p className="mb-5 text-[13.5px] leading-relaxed text-fg-muted">
+        <p className="mb-5 text-sm leading-relaxed text-fg-muted">
           Refresh the page to try again. If it keeps happening, contact support.
         </p>
         <button

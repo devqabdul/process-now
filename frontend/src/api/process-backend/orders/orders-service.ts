@@ -1,10 +1,11 @@
 import { http } from '../axios';
+import type { Paged } from '../common.types';
 import type { ApiEnvelope } from '../types';
 
 import type { CreateOrderPayload, Order, OrdersQuery, ReturnOrderPayload } from './orders.types';
 
-export const getOrders = (params: OrdersQuery = {}) =>
-  http.get<ApiEnvelope<Order[]>>('/orders', { params });
+export const getOrders = (params: OrdersQuery) =>
+  http.get<ApiEnvelope<Paged<Order>>>('/orders', { params });
 
 export const getOrder = (id: string) => http.get<ApiEnvelope<Order>>(`/orders/${id}`);
 
