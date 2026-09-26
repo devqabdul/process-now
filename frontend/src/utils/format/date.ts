@@ -3,8 +3,16 @@
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// The shop's day, as the API counts it: a lot received at 00:30 IST belongs to that IST day.
+const BUSINESS_TZ = 'Asia/Kolkata';
+
 // Dates are calendar days in the shop's timezone, so parse at local midnight, never as UTC.
-const fromIsoDate = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`);
+// A full timestamp ("…T18:31:48Z") is first turned into its IST day, not cut to its UTC one.
+const fromIsoDate = (iso: string) => {
+  const day =
+    iso.length > 10 ? new Date(iso).toLocaleDateString('en-CA', { timeZone: BUSINESS_TZ }) : iso;
+  return new Date(`${day}T00:00:00`);
+};
 
 const dayMonth = (date: Date) => `${date.getDate()} ${MONTHS[date.getMonth()]}`;
 

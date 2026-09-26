@@ -63,7 +63,11 @@ export const WorkspaceCompanyChip = ({ name, switchable }: WorkspaceCompanyChipP
       setActive((index) => (index + step + vendors.length) % vendors.length);
     } else if (event.key === 'Enter') {
       event.preventDefault();
-      if (activeVendor) jump(activeVendor.id);
+      // Mid-debounce the list is for the old text: search now rather than jump to a stale vendor.
+      if (search.trim() !== q) {
+        setQ(search.trim());
+        setActive(0);
+      } else if (activeVendor) jump(activeVendor.id);
     }
   };
 

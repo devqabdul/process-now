@@ -16,6 +16,7 @@ interface DailyLogFormDialogProps {
   // null = closed; a log = editing that day; 'new' = logging a day picked in the form.
   target: DailyLog | 'new' | null;
   today: string;
+  initialDate?: string | undefined;
   rate: number | undefined;
   onClose: () => void;
   onSubmit: (values: DailyLogFormInput) => Promise<DailyLogSaveResult>;
@@ -24,6 +25,7 @@ interface DailyLogFormDialogProps {
 export const DailyLogFormDialog = ({
   target,
   today,
+  initialDate,
   rate,
   onClose,
   onSubmit,
@@ -31,7 +33,7 @@ export const DailyLogFormDialog = ({
   const editing = target !== null && target !== 'new' ? target : null;
   const { form, submit } = useDailyLogForm({
     // A missed day is usually yesterday's.
-    date: editing?.logDate ?? shiftIsoDate(today, -1),
+    date: editing?.logDate ?? initialDate ?? shiftIsoDate(today, -1),
     log: editing,
     onSubmit,
     resetKey: target,

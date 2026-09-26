@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 
 import { isSuccess, type NormalizedError, safeApiError } from '@api/process-backend';
 import { dashboardKeys } from '@api/process-backend/dashboard';
@@ -75,6 +76,8 @@ export interface UseDailyLogPageResult {
   activeFilters: number;
   columns: DataTableColumn<DailyLog>[];
   target: DailyLog | 'new' | null;
+  // The day a new log starts on; undefined leaves the form's own default.
+  newDate: string | undefined;
   saved: string | null;
   showTable: boolean;
   isLoading: boolean;
@@ -98,10 +101,16 @@ export interface UseDailyLogPageResult {
 
 export const useDailyLogPage = (): UseDailyLogPageResult => {
   // state
-  const [target, setTarget] = useState<DailyLog | 'new' | null>(null);
+  // Read first: the dashboard's "Add daily log" for a past day arrives with that day.
+  const location = useLocation();
+  const [newDate, setNewDate] = useState(
+    () => (location.state as { logDate?: string } | null)?.logDate,
+  );
+  const [target, setTarget] = useState<DailyLog | 'new' | null>(() => (newDate ? 'new' : null));
   const [saved, setSaved] = useState<string | null>(null);
 
   // wiring
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const list = useListParams([], '');
   const range = list.getRange();
@@ -161,6 +170,13 @@ export const useDailyLogPage = (): UseDailyLogPageResult => {
   // The endpoint returns the whole range, so the export is the rows already here.
   const exportCsv = () => runExport(() => Promise.resolve(exportRows(columns, logs)));
 
+  // effects
+  // Drop the dashboard's day, so a refresh doesn't reopen the form.
+  useEffect(() => {
+    if (!newDate) return;
+    void navigate({ search: location.search }, { replace: true, state: null });
+  }, []);
+
   return {
     today,
     todayLabel: formatWeekdayDate(today),
@@ -182,6 +198,7 @@ export const useDailyLogPage = (): UseDailyLogPageResult => {
     activeFilters: Number(matchPreset(range, today) !== DEFAULT_DATE_PRESET),
     columns,
     target,
+    newDate,
     saved,
     showTable,
     isLoading: history.isPending,
@@ -197,6 +214,7 @@ export const useDailyLogPage = (): UseDailyLogPageResult => {
     save,
     openNew: () => {
       setSaved(null);
+      setNewDate(undefined);
       setTarget('new');
     },
     openEdit,

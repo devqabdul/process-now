@@ -41,7 +41,7 @@ export const CancelOrderDialog = ({
     <Dialog
       open={!!order}
       title={`Cancel ${order?.orderNo}?`}
-      description={`${order?.vendor.name}'s lot is dropped and no bill is raised. The order stays on the list as cancelled — nothing is deleted.`}
+      description={`${order?.vendor.name}'s lot is dropped and no bill is raised. It is kept as cancelled — nothing is deleted — and shows under Status: Cancelled.`}
       icon={
         <span className="grid size-9 flex-none place-items-center rounded-10 bg-danger-softer text-danger-strong">
           <Ban aria-hidden="true" className="size-4.5" strokeWidth={1.8} />

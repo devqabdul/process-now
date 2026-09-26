@@ -13,11 +13,13 @@ export const LoginPage = () => {
     identityShown,
     shakeField,
     showPassword,
+    capsLock,
     isSubmitting,
     selectKind,
     handleContinue,
     handleSignIn,
     togglePassword,
+    trackCapsLock,
     backToIdentify,
   } = useLoginPage();
   const { register, clearErrors, formState } = form;
@@ -43,9 +45,11 @@ export const LoginPage = () => {
           identityShown={identityShown}
           isMobile={identifierKind === 'mobile'}
           showPassword={showPassword}
+          capsLock={capsLock}
           shake={shakeField === 'password'}
           isSubmitting={isSubmitting}
           onTogglePassword={togglePassword}
+          onPasswordKey={trackCapsLock}
           onBack={backToIdentify}
           onSubmit={handleSignIn}
         />

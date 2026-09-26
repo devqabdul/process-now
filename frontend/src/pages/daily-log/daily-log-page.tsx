@@ -45,6 +45,7 @@ export const DailyLogPage = () => {
     activeFilters,
     columns,
     target,
+    newDate,
     saved,
     showTable,
     isLoading,
@@ -180,6 +181,7 @@ export const DailyLogPage = () => {
       <DailyLogFormDialog
         target={target}
         today={today}
+        initialDate={newDate}
         rate={rate}
         onClose={closeDialog}
         onSubmit={save}

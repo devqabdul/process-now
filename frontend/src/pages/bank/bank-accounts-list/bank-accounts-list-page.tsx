@@ -27,6 +27,8 @@ export const BankAccountsListPage = () => {
     hideBalance,
     target,
     saved,
+    failed,
+    busyId,
     isLoading,
     isError,
     isStatementLoading,
@@ -39,6 +41,7 @@ export const BankAccountsListPage = () => {
     openEdit,
     closeDialog,
     dismissSaved,
+    dismissFailed,
     save,
     setActive,
     retry,
@@ -107,6 +110,7 @@ export const BankAccountsListPage = () => {
                     account={selected}
                     onEdit={openEdit}
                     onSetActive={setActive}
+                    busyId={busyId}
                   />
                 </div>
               )}
@@ -149,6 +153,7 @@ export const BankAccountsListPage = () => {
       <BankAccountFormDialog target={target} onClose={closeDialog} onSubmit={save} />
 
       <Toast message={saved} onDismiss={dismissSaved} />
+      <Toast tone="danger" message={failed} onDismiss={dismissFailed} />
     </>
   );
 };

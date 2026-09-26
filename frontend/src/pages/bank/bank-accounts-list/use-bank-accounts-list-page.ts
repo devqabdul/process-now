@@ -44,6 +44,8 @@ export interface UseBankAccountsListPageResult {
   hideBalance: boolean;
   target: BankAccount | 'new' | null;
   saved: string | null;
+  failed: string | null;
+  busyId: string | null;
   isLoading: boolean;
   isError: boolean;
   isStatementLoading: boolean;
@@ -57,6 +59,7 @@ export interface UseBankAccountsListPageResult {
   openEdit: (account: BankAccount) => void;
   closeDialog: () => void;
   dismissSaved: () => void;
+  dismissFailed: () => void;
   save: (values: BankAccountFormInput) => Promise<BankAccountSaveResult>;
   setActive: (account: BankAccount, isActive: boolean) => void;
   retry: () => void;
@@ -67,6 +70,8 @@ export const useBankAccountsListPage = (): UseBankAccountsListPageResult => {
   // state
   const [target, setTarget] = useState<BankAccount | 'new' | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState('');
   const [hideBalance, setHideBalance] = usePersistedState('pn.bank.hideBalance', false);
 
@@ -121,9 +126,16 @@ export const useBankAccountsListPage = (): UseBankAccountsListPageResult => {
 
   // Closing keeps every past payment and expense, and reopens in one click.
   const setActive = async (account: BankAccount, isActive: boolean) => {
+    if (busyId) return;
+    setBusyId(account.id);
+    setFailed(null);
     try {
       const response = await updateBankAccount(account.id, { isActive });
-      if (!isSuccess(response.data)) return;
+      if (!isSuccess(response.data)) {
+        setSaved(null);
+        setFailed('Unable to change this account right now.');
+        return;
+      }
       await queryClient.invalidateQueries({ queryKey: bankAccountsKeys.all });
       setSaved(
         isActive
@@ -133,8 +145,13 @@ export const useBankAccountsListPage = (): UseBankAccountsListPageResult => {
     } catch (error) {
       safeApiError(error, {
         context: { page: 'bank', action: 'setBankAccountActive' },
-        onError: (err) => setSaved(err.message ?? 'Unable to change this account right now.'),
+        onError: (err) => {
+          setSaved(null);
+          setFailed(err.message ?? 'Unable to change this account right now.');
+        },
       });
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -150,6 +167,8 @@ export const useBankAccountsListPage = (): UseBankAccountsListPageResult => {
     hideBalance,
     target,
     saved,
+    failed,
+    busyId,
     isLoading: isPending,
     isError,
     isStatementLoading: statement.isPending,
@@ -168,6 +187,7 @@ export const useBankAccountsListPage = (): UseBankAccountsListPageResult => {
     },
     closeDialog: () => setTarget(null),
     dismissSaved: () => setSaved(null),
+    dismissFailed: () => setFailed(null),
     save,
     setActive: (account, isActive) => void setActive(account, isActive),
     retry: () => void refetch(),

@@ -23,12 +23,12 @@ export interface Company {
 
 export interface CreateCompanyPayload {
   name: string;
-  gstNo: string | null;
-  numberPrefix: string | null;
+  gstNo?: string;
+  numberPrefix?: string;
   admin: {
     name: string;
-    phone: string | null;
-    email: string | null;
+    phone?: string;
+    email?: string;
     password: string;
   };
 }

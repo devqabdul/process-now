@@ -54,10 +54,17 @@ interface AccountQuickActionsProps {
   account: BankAccount;
   onEdit: (account: BankAccount) => void;
   onSetActive: (account: BankAccount, isActive: boolean) => void;
+  busyId?: string | null;
 }
 
-export const AccountQuickActions = ({ account, onEdit, onSetActive }: AccountQuickActionsProps) => {
+export const AccountQuickActions = ({
+  account,
+  onEdit,
+  onSetActive,
+  busyId,
+}: AccountQuickActionsProps) => {
   const closed = account.isActive === false;
+  const busy = busyId === account.id;
   return (
     <ul aria-label={`Actions for ${account.name}`} className="grid grid-cols-4 gap-2">
       {/* A closed account takes no new expenses. */}
@@ -88,6 +95,7 @@ export const AccountQuickActions = ({ account, onEdit, onSetActive }: AccountQui
               </MenuItem>
               {closed ? (
                 <MenuItem
+                  disabled={busy}
                   onClick={() => {
                     close();
                     onSetActive(account, true);
@@ -99,6 +107,7 @@ export const AccountQuickActions = ({ account, onEdit, onSetActive }: AccountQui
               ) : (
                 <MenuItem
                   tone="danger"
+                  disabled={busy}
                   onClick={() => {
                     close();
                     onSetActive(account, false);

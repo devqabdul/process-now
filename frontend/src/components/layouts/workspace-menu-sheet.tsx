@@ -1,9 +1,8 @@
 import { Bell, ChevronDown, LogOut, Moon, RotateCcw, Sun } from 'lucide-react';
 import { type RefObject, useState } from 'react';
-import { NavLink } from 'react-router';
 
 import { Avatar } from '@components/ui/avatar';
-import type { NavItem, WorkspaceIdentity } from '@constants/navigation';
+import type { WorkspaceIdentity } from '@constants/navigation';
 import { cn } from '@lib/cn';
 import type { LayoutMode } from '@lib/layout-mode';
 import { accentAvatar } from '@constants/roles';
@@ -16,8 +15,6 @@ import { NotificationsEmpty } from './workspace-notifications';
 interface WorkspaceMenuSheetProps {
   ref: RefObject<HTMLDialogElement | null>;
   identity: WorkspaceIdentity;
-  // Menu entries that don't fit the phone tab bar; hidden on desktop, where the sidebar has them.
-  overflowItems: NavItem[];
   layout: LayoutMode;
   sidebarCollapsed: boolean;
 }
@@ -31,7 +28,6 @@ const ROW =
 export const WorkspaceMenuSheet = ({
   ref,
   identity,
-  overflowItems,
   layout,
   sidebarCollapsed,
 }: WorkspaceMenuSheetProps) => {
@@ -51,8 +47,9 @@ export const WorkspaceMenuSheet = ({
         if (event.target === ref.current) close();
       }}
       className={cn(
-        'mx-0 mt-auto mb-0 w-full max-w-none rounded-t-20 border border-line bg-surface p-1.5 text-fg shadow-popover backdrop:bg-[rgba(17,20,23,0.32)]',
-        'lg:mr-auto lg:mb-4 lg:w-61.5 lg:rounded-14 lg:backdrop:bg-transparent',
+        'sheet-up mx-0 mt-auto mb-0 w-full max-w-none rounded-t-20 border border-line bg-surface p-1.5 text-fg shadow-popover',
+        // Slides up on phones only; the desktop popover appears in place.
+        'lg:mr-auto lg:mb-4 lg:w-61.5 lg:translate-none lg:rounded-14 lg:backdrop:bg-transparent',
         layout === 'top'
           ? 'lg:mt-15 lg:mr-4 lg:mb-auto lg:ml-auto'
           : sidebarCollapsed
@@ -67,17 +64,6 @@ export const WorkspaceMenuSheet = ({
           <p className="truncate text-xs text-fg-subtle">{identity.user.email}</p>
         </div>
       </div>
-
-      {overflowItems.length > 0 && (
-        <div className="border-t border-line-subtle pt-1.5 lg:hidden">
-          {overflowItems.map((item) => (
-            <NavLink key={item.to} to={item.to} onClick={close} className={ROW}>
-              <item.icon aria-hidden="true" className="size-4.25 flex-none" strokeWidth={1.7} />
-              {item.label}
-            </NavLink>
-          ))}
-        </div>
-      )}
 
       {/* The phone top bar keeps only search and the avatar, so both controls live here. */}
       <div className="mt-1.5 border-t border-line-subtle pt-1.5 lg:hidden">

@@ -59,6 +59,8 @@ export interface UseCompaniesListPageResult {
   showPassword: boolean;
   resetDone: string | null;
   dismissResetDone: () => void;
+  failed: string | null;
+  dismissFailed: () => void;
   deactivateTarget: CompanyRow | null;
   isDeactivating: boolean;
   deactivateError: string | null;
@@ -79,6 +81,7 @@ export const useCompaniesListPage = (): UseCompaniesListPageResult => {
   const [resetTarget, setResetTarget] = useState<CompanyRow | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [resetDone, setResetDone] = useState<string | null>(null);
+  const [failed, setFailed] = useState<string | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<CompanyRow | null>(null);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [deactivateError, setDeactivateError] = useState<string | null>(null);
@@ -179,7 +182,11 @@ export const useCompaniesListPage = (): UseCompaniesListPageResult => {
     setResetTarget(company);
   };
 
-  const activate = (company: CompanyRow) => void changeActive(company, true);
+  const activate = (company: CompanyRow) => {
+    setResetDone(null);
+    setFailed(null);
+    void changeActive(company, true).then(setFailed);
+  };
 
   const columns = buildCompanyColumns({
     onResetPassword: openReset,
@@ -221,6 +228,8 @@ export const useCompaniesListPage = (): UseCompaniesListPageResult => {
     showPassword,
     resetDone,
     dismissResetDone: () => setResetDone(null),
+    failed,
+    dismissFailed: () => setFailed(null),
     deactivateTarget,
     isDeactivating,
     deactivateError,

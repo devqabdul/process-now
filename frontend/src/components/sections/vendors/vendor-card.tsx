@@ -14,12 +14,14 @@ export const VENDOR_SKELETON_ROWS = 6;
 export interface VendorActionHandlers {
   onEdit: (vendor: Vendor) => void;
   onSetActive: (vendor: Vendor, isActive: boolean) => void;
+  busyId?: string | null;
 }
 
 export const VendorActions = ({
   vendor,
   onEdit,
   onSetActive,
+  busyId,
 }: { vendor: Vendor } & VendorActionHandlers) => (
   <Menu label={`Actions for ${vendor.name}`} className="flex-none">
     {(close) => (
@@ -35,6 +37,7 @@ export const VendorActions = ({
         </MenuItem>
         {vendor.isActive === false ? (
           <MenuItem
+            disabled={busyId === vendor.id}
             onClick={() => {
               close();
               onSetActive(vendor, true);
@@ -46,6 +49,7 @@ export const VendorActions = ({
         ) : (
           <MenuItem
             tone="danger"
+            disabled={busyId === vendor.id}
             onClick={() => {
               close();
               onSetActive(vendor, false);

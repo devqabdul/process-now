@@ -64,10 +64,15 @@ export const Dialog = ({
       ref={ref}
       aria-labelledby={titleId}
       onClose={onClose}
+      // Escape mid-request would close the dialog and lose the failure message that follows.
+      onCancel={(event) => busy && event.preventDefault()}
       className={cn(
-        'm-auto w-[calc(100vw-2rem)] max-w-sm rounded-16 border border-line bg-surface p-0 text-fg backdrop:bg-black/40',
+        'm-auto w-[calc(100vw-2rem)] max-w-sm rounded-16 border border-line bg-surface p-0 text-fg',
         centered && 'max-w-md rounded-20 shadow-dialog',
-        bottom && 'mx-0 mb-0 w-full max-w-none rounded-b-none border-x-0 border-b-0',
+        // .sheet-up owns the backdrop so it can fade with the slide.
+        bottom
+          ? 'sheet-up mx-0 mb-0 w-full max-w-none rounded-b-none border-x-0 border-b-0'
+          : 'animate-modal-in backdrop:bg-black/40',
         sheet &&
           'lg:mr-0 lg:ml-auto lg:h-dvh lg:max-h-dvh lg:w-full lg:max-w-lg lg:animate-sheet-in lg:rounded-none lg:border-y-0 lg:border-r-0',
       )}
