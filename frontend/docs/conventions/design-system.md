@@ -97,9 +97,6 @@ page load, and a company admin has no business being told which roles exist. Add
 server-side needs no deploy here; adding an _accent_ does, and an unknown one falls back to
 `brand` rather than rendering an empty tile.
 
-`ROLE_META[role].accent` is the value used for the first paint, before the cached `/roles` read
-resolves. Keep the two in step.
-
 ## Contrast floors
 
 The recent accessibility pass fixed the floors below and recorded the measured ratio in a comment

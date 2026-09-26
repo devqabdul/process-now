@@ -6,7 +6,6 @@ import { AuthFallback } from '@components/layouts/auth-fallback';
 import { WorkspaceShell } from '@components/layouts/workspace-shell';
 import { AppSplash } from '@components/shared/app-splash';
 import { COMPANY_ADMIN_NAV, SUPER_ADMIN_NAV, type WorkspaceIdentity } from '@constants/navigation';
-import { ROLE_META } from '@constants/roles';
 import { SessionListener } from '@lib/auth';
 
 import { guestOnly, requireRole } from './middleware';
@@ -21,12 +20,10 @@ const PLATFORM_NAME = 'ProcessNow';
 const useIdentity = (fallbackName: string): WorkspaceIdentity => {
   const { data } = useMe();
   const user = data?.user;
-  const meta = user ? (ROLE_META[user.role] ?? ROLE_META.company_admin) : undefined;
-  // The API names the role's label and accent; ROLE_META is the fallback if it ever stops.
   return {
     name: user?.company?.name ?? fallbackName,
-    role: user?.roleMeta?.label ?? meta?.label ?? '',
-    accent: user?.roleMeta?.accent ?? meta?.accent ?? 'brand',
+    role: user?.roleMeta.label ?? '',
+    accent: user?.roleMeta.accent ?? 'brand',
     user: {
       name: user?.name ?? '',
       // Whichever one they sign in with.

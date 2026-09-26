@@ -75,12 +75,12 @@ live with their page.
 
 ## `src/constants/`
 
-| File                      | Exports                                                                                     |
-| ------------------------- | ------------------------------------------------------------------------------------------- |
-| `constants/navigation.ts` | `NavItem`, `NavGroup`, `WorkspaceIdentity`, `COMPANY_ADMIN_NAV`, `SUPER_ADMIN_NAV`          |
-| `constants/roles.ts`      | `ROLE_META` — per `UserRole`: label, home path, badge/avatar classes, and two copy builders |
+| File                      | Exports                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| `constants/navigation.ts` | `NavItem`, `NavGroup`, `WorkspaceIdentity`, `COMPANY_ADMIN_NAV`, `SUPER_ADMIN_NAV` |
+| `constants/roles.ts`      | `ROLE_HOME` — per `UserRole`, the landing path; plus the accent → class maps       |
 
-`ROLE_META[role].home` is where login sends a user, which keeps the role→landing-page mapping in
+`ROLE_HOME[role]` is where login sends a user, which keeps the role→landing-page mapping in
 one place. Both files are plain data with no React in them.
 
 ## `src/utils/` — pure helpers

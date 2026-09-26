@@ -85,11 +85,11 @@ that was replaced by a deploy — and reloads once. Otherwise it renders the sta
 
 `src/app/router/middleware.ts` exports three `MiddlewareFunction`s:
 
-| Guard               | Rule                                                                      |
-| ------------------- | ------------------------------------------------------------------------- |
-| `requireAuth`       | signed in, any role; otherwise `redirect('/login')`                       |
-| `requireRole(role)` | signed in **with that role**; a wrong role goes to `ROLE_META[role].home` |
-| `guestOnly`         | for `/login`: someone already signed in is sent to their own home         |
+| Guard               | Rule                                                                 |
+| ------------------- | -------------------------------------------------------------------- |
+| `requireAuth`       | signed in, any role; otherwise `redirect('/login')`                  |
+| `requireRole(role)` | signed in **with that role**; a wrong role goes to `ROLE_HOME[role]` |
+| `guestOnly`         | for `/login`: someone already signed in is sent to their own home    |
 
 They are attached in `routes.tsx` — `guestOnly` on `/login`, `requireRole('company_admin')` on
 `/`, `requireRole('super_admin')` on `/admin`. Middleware runs parent → child, before the loaders

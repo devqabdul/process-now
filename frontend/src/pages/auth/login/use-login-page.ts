@@ -6,7 +6,7 @@ import * as z from 'zod/mini';
 
 import { isSuccess, type NormalizedError, safeApiError } from '@api/process-backend';
 import { login } from '@api/process-backend/auth';
-import { ROLE_META } from '@constants/roles';
+import { ROLE_HOME } from '@constants/roles';
 import {
   detectIdentifierKind,
   displayIdentifier,
@@ -125,7 +125,7 @@ export const useLoginPage = (): UseLoginPageResult => {
       // The session now lives in the cookie; the workspace reads the user from /auth/me.
       // A role we don't know yet still lands somewhere: the sign-in already succeeded.
       const role = response.data.data.user.role;
-      navigate((ROLE_META[role] ?? ROLE_META.company_admin).home, { replace: true });
+      navigate(ROLE_HOME[role] ?? ROLE_HOME.company_admin, { replace: true });
     } catch (error) {
       safeApiError(error, {
         context: { page: 'login', action: 'login' },

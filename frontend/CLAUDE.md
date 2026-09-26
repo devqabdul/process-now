@@ -152,7 +152,7 @@ Declared in **both** `tsconfig.app.json` and `vite.config.ts` — change both.
 Route `middleware` in `src/app/router/middleware.ts` does the guarding: `requireAuth`,
 `requireRole(role)` and `guestOnly`, attached in `routes.tsx` to `/login` (`guestOnly`), `/`
 (`company_admin`) and `/admin` (`super_admin`). A signed-out visitor is redirected to `/login`; a
-wrong-role one goes to `ROLE_META[role].home` rather than to an error. `loadSession()` reads
+wrong-role one goes to `ROLE_HOME[role]` rather than to an error. `loadSession()` reads
 `/auth/me` through `queryClient.query({ ...meQueryOptions, staleTime: 'static' })`, so the guard
 and the page it renders share **one** fetch — which is also why `lib/auth/session.ts` imports the
 `queryClient` singleton directly and uses React Query outside React. Identity in the shell comes
@@ -186,7 +186,7 @@ src/
   lib/           cn.ts, auth/ (session + 401 listener), theme/ (pn.colorMode),
                  layout-mode/ (pn.layout), vitals/, notifications/ (empty)
   hooks/         generic hooks — use-media-query.ts
-  constants/     navigation.ts (both menus), roles.ts (role → home, labels, accent fallback)
+  constants/     navigation.ts (both menus), roles.ts (role → home, accent → classes)
   utils/         identifier.ts, format/ (date, money, quantity)
   types/         cross-cutting primitives (@shared) — empty today
   test/          setup.ts, server.ts (MSW + envelope), axios-response.ts (axiosOk)
