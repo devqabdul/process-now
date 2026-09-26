@@ -1,17 +1,16 @@
-import { queryOptions, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
-import { unwrap } from '../unwrap';
+import { listQueries } from '../list-query';
 
 import { getCompanies } from './companies-service';
 import type { CompaniesQuery } from './companies.types';
 
 export const companiesKeys = {
   all: ['companies'] as const,
-  list: (params: CompaniesQuery = {}) =>
-    queryOptions({
-      queryKey: [...companiesKeys.all, 'list', params] as const,
-      queryFn: () => unwrap(getCompanies(params)),
-    }),
+  ...listQueries(['companies'], getCompanies),
 };
 
-export const useCompanies = (params: CompaniesQuery = {}) => useQuery(companiesKeys.list(params));
+export const useCompanies = (params: CompaniesQuery) => useQuery(companiesKeys.list(params));
+
+export const useCompaniesInfinite = (params: Omit<CompaniesQuery, 'page'>) =>
+  useInfiniteQuery(companiesKeys.infinite(params));

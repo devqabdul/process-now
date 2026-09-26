@@ -14,6 +14,7 @@ export const LoginPage = () => {
     shakeField,
     showPassword,
     isSubmitting,
+    selectKind,
     handleContinue,
     handleSignIn,
     togglePassword,
@@ -29,6 +30,7 @@ export const LoginPage = () => {
           field={register('identifier', { onChange: () => clearErrors('identifier') })}
           error={formState.errors.identifier}
           kind={identifierKind}
+          onKindChange={selectKind}
           isValid={isIdentifierValid}
           shake={shakeField === 'identifier'}
           onSubmit={handleContinue}

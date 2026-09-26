@@ -1,4 +1,4 @@
-import type { PageQuery } from '../common.types';
+import type { ListParams } from '../common.types';
 
 export interface CompanyAdmin {
   id: string;
@@ -36,7 +36,8 @@ export interface CreateCompanyPayload {
 // POST /admin/companies returns the created company as `data`, like every other route.
 export type CreateCompanyResponse = Company;
 
-export type CompaniesQuery = PageQuery;
+// `q` matches the name. Sort: createdAt (default -createdAt), name.
+export type CompaniesQuery = ListParams;
 
 export interface ResetAdminPasswordPayload {
   password: string;

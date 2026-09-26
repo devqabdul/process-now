@@ -1,41 +1,81 @@
 import { PackagePlus, Plus, SearchX, WifiOff } from 'lucide-react';
-import { Link } from 'react-router';
 
 import { CancelOrderDialog } from '@components/sections/orders/cancel-order-dialog';
+import { NewOrderDialog } from '@components/sections/orders/new-order-dialog';
 import {
   ORDER_SKELETON_ROWS,
+  ORDER_STATUS,
   OrderCard,
   OrderCardSkeleton,
+  OrderStatusBadge,
 } from '@components/sections/orders/order-card';
 import { OrdersTable } from '@components/sections/orders/orders-table';
 import { ReturnOrderDialog } from '@components/sections/orders/return-order-dialog';
+import { CardList } from '@components/shared/card-list';
 import { EmptyState } from '@components/shared/empty-state';
 import { LoadError } from '@components/shared/load-error';
 import { PageHeader } from '@components/shared/page-header';
+import { TableToolbar } from '@components/shared/table-toolbar';
 import { Toast } from '@components/shared/toast';
-import { Button, buttonClasses } from '@components/ui/button';
-import { SearchInput } from '@components/ui/search-input';
-import { cn } from '@lib/cn';
+import { Button } from '@components/ui/button';
+import { FilterChip } from '@components/ui/filter-chip';
+import { LoadMore } from '@components/ui/load-more';
+import { Pagination } from '@components/ui/pagination';
+import { formatCount } from '@utils/format/count';
 
-import { STATUS_FILTERS, useOrdersListPage } from './use-orders-list-page';
+import { ORDER_STATUSES, useOrdersListPage } from './use-orders-list-page';
 
-const SKELETON_CARDS = Array.from({ length: ORDER_SKELETON_ROWS }, (_, i) => i * 0.08);
+const STATUS_OPTIONS = ORDER_STATUSES.map((status) => ({
+  value: status,
+  label: ORDER_STATUS[status].label,
+  render: <OrderStatusBadge status={status} />,
+}));
 
 export const OrdersListPage = () => {
   const {
-    search,
-    setSearch,
-    status,
-    setStatus,
     orders,
+    total,
+    page,
+    pageSize,
+    q,
+    sorting,
+    statuses,
+    vendorIds,
+    vendorOptions,
+    hasFilters,
+    activeFilters,
+    columns,
+    columnVisibility,
+    pickerColumns,
     showTable,
     isLoading,
+    isRefreshing,
+    isLoadingMore,
     isError,
+    exportError,
     returnTarget,
     cancelTarget,
     isSubmitting,
     actionError,
     saved,
+    creating,
+    activeVendors,
+    serviceTypes,
+    isLoadingNew,
+    openNew,
+    closeNew,
+    saveNew,
+    setPage,
+    setPageSize,
+    setQ,
+    setSorting,
+    setStatuses,
+    setVendor,
+    clearFilters,
+    setColumnVisibility,
+    toggleColumn,
+    loadMore,
+    exportCsv,
     start,
     openReturn,
     closeReturn,
@@ -45,42 +85,44 @@ export const OrdersListPage = () => {
     confirmCancel,
     dismissSaved,
     retry,
-    clearSearch,
   } = useOrdersListPage();
 
   const rowActions = { onStart: start, onReturn: openReturn, onCancel: openCancel };
 
-  const empty = search.trim() ? (
+  const empty = hasFilters ? (
     <EmptyState
       icon={SearchX}
-      title={`Nothing matches “${search.trim()}”`}
-      description="No order matches that vendor or number. Try fewer letters, or clear the search."
+      title="No order matches"
+      description="Nothing fits this search and these filters. Try fewer letters, or clear them."
       action={
-        <Button variant="secondary" size="sm" onClick={clearSearch}>
-          Show all orders
+        <Button variant="secondary" size="sm" onClick={clearFilters}>
+          Clear search and filters
         </Button>
       }
     />
   ) : (
     <EmptyState
       icon={PackagePlus}
-      title={status ? 'Nothing at this stage' : 'No orders yet'}
-      description={
-        status
-          ? 'No order is sitting here right now. Try another stage, or show them all.'
-          : 'Take in your first lot of work and it will appear here until you return it to the vendor.'
-      }
+      title="No open orders"
+      description="Take in a lot of work and it will appear here until you return it to the vendor."
       action={
-        status ? (
-          <Button variant="secondary" size="sm" onClick={() => setStatus('')}>
-            Show all orders
-          </Button>
-        ) : (
-          <Link to="/orders/new" className={buttonClasses('primary', 'sm')}>
-            Take in an order
-          </Link>
-        )
+        <Button variant="secondary" size="sm" onClick={openNew}>
+          Take in an order
+        </Button>
       }
+    />
+  );
+
+  const summary = (
+    <strong className="font-semibold text-fg">{formatCount(total, 'order', 'orders')}</strong>
+  );
+
+  const error = (
+    <LoadError
+      icon={WifiOff}
+      title="Couldn't load the orders"
+      description="The list didn't come back. Check your connection and try again — nothing has been lost."
+      onRetry={retry}
     />
   );
 
@@ -91,74 +133,97 @@ export const OrdersListPage = () => {
         title="Orders"
         subtitle="Every lot in the shop, from received to returned."
         actions={
-          <Link to="/orders/new" className={buttonClasses('primary', 'sm')}>
+          // Phones already have the tab bar's New button for this.
+          <Button size="sm" onClick={openNew} className="hidden lg:inline-flex">
             <Plus aria-hidden="true" className="size-3.75" strokeWidth={2.2} />
             New order
-          </Link>
+          </Button>
         }
       />
 
-      {isError ? (
-        <LoadError
-          icon={WifiOff}
-          title="Couldn't load the orders"
-          description="The list didn't come back. Check your connection and try again — nothing has been lost."
-          onRetry={retry}
+      <TableToolbar
+        rowCount={total}
+        search={q}
+        onSearchChange={setQ}
+        searchLabel="Search orders by vendor or number"
+        searchPlaceholder="Search orders…"
+        columns={pickerColumns}
+        onToggleColumn={toggleColumn}
+        onExport={exportCsv}
+        activeFilters={activeFilters}
+        onClearAll={clearFilters}
+      >
+        <FilterChip
+          label="Status"
+          options={STATUS_OPTIONS}
+          selected={statuses}
+          onChange={setStatuses}
+          onClear={() => setStatuses([])}
+        />
+        <FilterChip
+          label="Vendor"
+          options={vendorOptions}
+          selected={vendorIds}
+          onChange={setVendor}
+          onClear={() => setVendor([])}
+        />
+      </TableToolbar>
+      {exportError && (
+        <p role="alert" className="text-13 text-danger-strong">
+          {exportError}
+        </p>
+      )}
+
+      {showTable ? (
+        <OrdersTable
+          columns={columns}
+          rows={orders}
+          loading={isLoading}
+          refreshing={isRefreshing}
+          error={isError ? error : undefined}
+          empty={empty}
+          sorting={sorting}
+          onSortingChange={setSorting}
+          columnVisibility={columnVisibility}
+          onColumnVisibilityChange={setColumnVisibility}
+          summary={summary}
+          footer={
+            <Pagination
+              page={page}
+              pageSize={pageSize}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          }
         />
       ) : (
-        <>
-          <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              label="Search orders by vendor or number"
-              placeholder="Search orders…"
-              className="lg:max-w-xs"
+        <CardList
+          items={orders}
+          rowKey={(order) => order.id}
+          renderItem={(order) => <OrderCard order={order} {...rowActions} />}
+          label="Orders"
+          loading={isLoading}
+          skeleton={<OrderCardSkeleton />}
+          skeletonCount={ORDER_SKELETON_ROWS}
+          error={isError ? error : undefined}
+          empty={empty}
+          summary={summary}
+          footer={
+            <LoadMore
+              shown={orders.length}
+              total={total}
+              loading={isLoadingMore}
+              onLoadMore={loadMore}
             />
-
-            {/* A stage is a filter, not a tab bar: the list is the same list either way. */}
-            <div role="group" aria-label="Filter by stage" className="flex flex-wrap gap-1.5">
-              {STATUS_FILTERS.map((filter) => (
-                <button
-                  key={filter.value}
-                  type="button"
-                  aria-pressed={status === filter.value}
-                  onClick={() => setStatus(filter.value)}
-                  className={cn(
-                    'h-9 rounded-10 border px-3 text-[12px] font-medium transition-colors duration-150',
-                    status === filter.value
-                      ? 'border-primary bg-primary text-primary-fg'
-                      : 'border-line bg-surface text-fg-secondary hover:border-line-strong hover:text-fg',
-                  )}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Below md the eight columns would need a sideways scroll, so rows become cards. */}
-          {showTable ? (
-            <OrdersTable rows={orders} loading={isLoading} empty={empty} {...rowActions} />
-          ) : (
-            <ul className="flex flex-col gap-2.5">
-              {isLoading
-                ? SKELETON_CARDS.map((delay) => <OrderCardSkeleton key={delay} delay={delay} />)
-                : orders.map((order) => <OrderCard key={order.id} order={order} {...rowActions} />)}
-              {!isLoading && orders.length === 0 && (
-                <li className="rounded-14 border border-line-input">{empty}</li>
-              )}
-            </ul>
-          )}
-
-          {/* Always mounted: a live region has to exist before the count it announces changes. */}
-          <p role="status" className="text-[11.5px] text-fg-subtle empty:sr-only">
-            {!isLoading && orders.length > 0
-              ? `Showing ${orders.length} ${orders.length === 1 ? 'order' : 'orders'}.`
-              : null}
-          </p>
-        </>
+          }
+        />
       )}
+
+      {/* Always mounted: a live region has to exist before the count it announces changes. */}
+      <p role="status" className="sr-only">
+        {!isLoading && !isError ? `${formatCount(total, 'order', 'orders')} found.` : null}
+      </p>
 
       <ReturnOrderDialog
         key={returnTarget?.id}
@@ -176,6 +241,15 @@ export const OrdersListPage = () => {
         error={actionError}
         onClose={closeCancel}
         onConfirm={confirmCancel}
+      />
+
+      <NewOrderDialog
+        open={creating}
+        vendors={activeVendors}
+        serviceTypes={serviceTypes}
+        isLoading={isLoadingNew}
+        onClose={closeNew}
+        onSubmit={saveNew}
       />
 
       <Toast message={saved} onDismiss={dismissSaved} />

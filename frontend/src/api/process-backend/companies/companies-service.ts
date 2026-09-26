@@ -1,4 +1,5 @@
 import { http } from '../axios';
+import type { Paged } from '../common.types';
 import type { ApiEnvelope } from '../types';
 
 import type {
@@ -9,8 +10,8 @@ import type {
   ResetAdminPasswordResponse,
 } from './companies.types';
 
-export const getCompanies = (params: CompaniesQuery = {}) =>
-  http.get<ApiEnvelope<Company[]>>('/admin/companies', { params });
+export const getCompanies = (params: CompaniesQuery) =>
+  http.get<ApiEnvelope<Paged<Company>>>('/admin/companies', { params });
 
 /** Creates the company and its first admin in one transaction. */
 export const createCompany = (payload: CreateCompanyPayload) =>

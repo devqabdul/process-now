@@ -1,14 +1,16 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
   Query,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { PageQueryDto } from '../common/dto/page-query.dto.js';
+import { ListQueryDto } from '../common/dto/list-query.dto.js';
 import {
   CompanyId,
   CurrentUser,
@@ -29,7 +31,7 @@ export class ServiceTypesController {
   constructor(private readonly serviceTypes: ServiceTypesService) {}
 
   @Get()
-  findAll(@CompanyId() companyId: string, @Query() query: PageQueryDto) {
+  findAll(@CompanyId() companyId: string, @Query() query: ListQueryDto) {
     return this.serviceTypes.findAll(companyId, query);
   }
 
@@ -50,7 +52,7 @@ export class ServiceTypesController {
     return this.serviceTypes.create(companyId, user.userId, dto);
   }
 
-  /** Edit, or set active: false. No delete: old orders reference it. */
+  /** Edit, or set active: false. */
   @Patch(':id')
   update(
     @CompanyId() companyId: string,
@@ -59,5 +61,15 @@ export class ServiceTypesController {
     @Body() dto: UpdateServiceTypeDto,
   ) {
     return this.serviceTypes.update(companyId, user.userId, id, dto);
+  }
+
+  /** Only a service no order has used; a used one is retired with isActive: false. */
+  @Delete(':id')
+  @HttpCode(200)
+  remove(
+    @CompanyId() companyId: string,
+    @Param('id', new ParseIdPipe('id')) id: string,
+  ) {
+    return this.serviceTypes.remove(companyId, id);
   }
 }

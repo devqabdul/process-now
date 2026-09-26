@@ -1,5 +1,6 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
+import { Link } from 'react-router';
 
 import type { Vendor } from '@api/process-backend/vendors';
 import { LetterTile } from '@components/ui/avatar';
@@ -11,31 +12,35 @@ import { VENDOR_SKELETON_ROWS, VendorActions, type VendorActionHandlers } from '
 
 const helper = createColumnHelper<DataTableFeatures, Vendor>();
 
-const buildColumns = (actions: VendorActionHandlers) =>
+// Column ids that sort are the API's sort keys: name.
+export const buildVendorColumns = (actions: VendorActionHandlers) =>
   helper.columns([
     helper.accessor('name', {
       header: 'Vendor',
       enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-[32%]' },
+      meta: { className: 'w-[32%]', hideable: false, exportValue: (vendor) => vendor.name },
       cell: ({ row }) => (
         <span className="flex items-center gap-2.5">
           <LetterTile name={row.original.name} />
-          <span className="min-w-0 truncate font-medium">{row.original.name}</span>
+          <Link
+            to={`/vendors/${row.original.id}`}
+            className="min-w-0 truncate font-medium hover:text-link hover:underline"
+          >
+            {row.original.name}
+          </Link>
           {row.original.isActive === false && <Badge tone="neutral">Inactive</Badge>}
         </span>
       ),
     }),
     helper.accessor('phone', {
       header: 'Mobile',
-      enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-[22%] whitespace-nowrap' },
+      meta: { className: 'w-[22%] whitespace-nowrap', exportValue: (vendor) => vendor.phone },
       cell: ({ row }) => displayIdentifier(row.original.phone),
     }),
     helper.display({
       id: 'address',
       header: 'Address',
+      meta: { exportValue: (vendor) => vendor.address },
       cell: ({ row }) => (
         <span className="block min-w-0 truncate text-fg-subtle">{row.original.address || '—'}</span>
       ),
@@ -43,25 +48,21 @@ const buildColumns = (actions: VendorActionHandlers) =>
     helper.display({
       id: 'actions',
       header: '',
-      meta: { className: 'w-12' },
+      meta: { label: 'Actions', hideable: false },
       cell: ({ row }) => <VendorActions vendor={row.original} {...actions} />,
     }),
   ]);
 
-interface VendorsTableProps extends VendorActionHandlers {
-  rows: Vendor[];
-  loading: boolean;
-  empty: ReactNode;
-}
+type VendorsTableProps = Omit<
+  ComponentProps<typeof DataTable<Vendor>>,
+  'label' | 'rowKey' | 'skeletonRows'
+>;
 
-export const VendorsTable = ({ rows, loading, empty, ...actions }: VendorsTableProps) => (
+export const VendorsTable = (props: VendorsTableProps) => (
   <DataTable
-    columns={buildColumns(actions)}
-    rows={rows}
-    rowKey={(vendor) => vendor.id}
+    {...props}
     label="Vendors"
-    loading={loading}
+    rowKey={(vendor) => vendor.id}
     skeletonRows={VENDOR_SKELETON_ROWS}
-    empty={empty}
   />
 );

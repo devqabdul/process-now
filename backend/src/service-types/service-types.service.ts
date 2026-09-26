@@ -1,8 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client.js';
 import { money } from '../common/money.js';
 import { fieldError } from '../common/validators.js';
-import { paginate, type PageQueryDto } from '../common/dto/page-query.dto.js';
+import {
+  listArgs,
+  paged,
+  type ListQueryDto,
+  type ListSpec,
+} from '../common/dto/list-query.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateServiceTypeDto,
@@ -38,17 +43,34 @@ const toView = <
   baseCost: money(serviceType.baseCost),
 });
 
+const serviceTypeList: ListSpec<
+  Prisma.ServiceTypeWhereInput,
+  Prisma.ServiceTypeOrderByWithRelationInput
+> = {
+  search: (term) => [
+    { name: { contains: term, mode: 'insensitive' } },
+    { unit: { contains: term, mode: 'insensitive' } },
+  ],
+  sortable: {
+    // Active ones stay on top whichever way names run.
+    name: (dir) => [{ isActive: 'desc' }, { name: dir }],
+    basePrice: (dir) => [{ basePrice: dir }],
+    createdAt: (dir) => [{ createdAt: dir }],
+  },
+  defaultSort: 'name',
+};
+
 @Injectable()
 export class ServiceTypesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(companyId: string, query: PageQueryDto) {
-    const serviceTypes = await this.prisma.serviceType.findMany({
-      where: { companyId },
-      orderBy: [{ isActive: 'desc' }, { name: 'asc' }, { id: 'asc' }],
-      ...paginate(query),
-    });
-    return serviceTypes.map(toView);
+  async findAll(companyId: string, query: ListQueryDto) {
+    const args = listArgs({ companyId }, query, serviceTypeList);
+    const [serviceTypes, total] = await Promise.all([
+      this.prisma.serviceType.findMany(args),
+      this.prisma.serviceType.count({ where: args.where }),
+    ]);
+    return paged(serviceTypes.map(toView), total, query);
   }
 
   async findOne(companyId: string, id: string) {
@@ -97,6 +119,22 @@ export class ServiceTypesService {
           updatedBy: actor,
         },
       }),
+    );
+  }
+
+  /** Order items point at their service type, so a used one can't be deleted, only retired. */
+  async remove(companyId: string, id: string) {
+    const used = await this.prisma.orderItem.findFirst({
+      where: { serviceTypeId: id, order: { companyId } },
+      select: { id: true },
+    });
+    if (used) {
+      throw new ConflictException(
+        'Orders already use this service. Deactivate it instead.',
+      );
+    }
+    return toView(
+      await this.prisma.serviceType.delete({ where: { id, companyId } }),
     );
   }
 }

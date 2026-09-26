@@ -1,14 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { type UseFormReturn, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod/mini';
 
 import { isSuccess, type NormalizedError, safeApiError } from '@api/process-backend';
-import { login } from '@api/process-backend/auth';
-import { ROLE_META } from '@constants/roles';
+import { login, meQueryOptions } from '@api/process-backend/auth';
+import { ROLE_HOME } from '@constants/roles';
 import {
-  detectIdentifierKind,
   displayIdentifier,
   type IdentifierKind,
   isValidEmail,
@@ -17,22 +17,28 @@ import {
   normalizeIdentifier,
 } from '@utils/identifier';
 
-const identifierError = (raw: string) => {
-  const kind = detectIdentifierKind(raw);
-  if (!kind) return 'Enter your email address or mobile number.';
-  if (kind === 'mobile' && !isValidMobile(raw)) return 'Mobile number must be 10 digits.';
-  if (kind === 'email' && !isValidEmail(raw))
-    return 'That does not look like a valid email address.';
-  return null;
+const identifierError = (raw: string, kind: IdentifierKind) => {
+  if (kind === 'mobile') {
+    if (!raw.trim()) return 'Enter your mobile number.';
+    return isValidMobile(raw) ? null : 'Mobile number must be 10 digits.';
+  }
+  if (!raw.trim()) return 'Enter your email address.';
+  return isValidEmail(raw) ? null : 'That does not look like a valid email address.';
 };
 
-const loginSchema = z.object({
-  identifier: z.string().check((ctx) => {
-    const message = identifierError(ctx.value);
-    if (message) ctx.issues.push({ code: 'custom', message, input: ctx.value });
-  }),
-  password: z.string().check(z.minLength(1, { error: 'Enter your password to continue.' })),
-});
+const loginSchema = z
+  .object({
+    // Which tab the user picked; never sent to the API.
+    kind: z.enum(['mobile', 'email']),
+    identifier: z.string(),
+    password: z.string().check(z.minLength(1, { error: 'Enter your password to continue.' })),
+  })
+  .check((ctx) => {
+    const { identifier, kind } = ctx.value;
+    const message = identifierError(identifier, kind);
+    if (message)
+      ctx.issues.push({ code: 'custom', path: ['identifier'], message, input: identifier });
+  });
 
 export type LoginFormInput = z.infer<typeof loginSchema>;
 
@@ -53,12 +59,13 @@ const toLoginErrorMessage = (err: NormalizedError) => {
 export interface UseLoginPageResult {
   form: UseFormReturn<LoginFormInput>;
   step: LoginStep;
-  identifierKind: IdentifierKind | null;
+  identifierKind: IdentifierKind;
   isIdentifierValid: boolean;
   identityShown: string;
   shakeField: ShakeField | null;
   showPassword: boolean;
   isSubmitting: boolean;
+  selectKind: (kind: IdentifierKind) => void;
   handleContinue: (event: FormEvent<HTMLFormElement>) => void;
   handleSignIn: (event: FormEvent<HTMLFormElement>) => void;
   togglePassword: () => void;
@@ -74,25 +81,36 @@ export const useLoginPage = (): UseLoginPageResult => {
 
   // wiring
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const form = useForm<LoginFormInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { identifier: '', password: '' },
+    // Mobile first: most admins sign in with their phone.
+    defaultValues: { kind: 'mobile', identifier: '', password: '' },
     mode: 'onSubmit',
     reValidateMode: 'onSubmit',
   });
-  const { control, trigger, setError, clearErrors, resetField, setFocus, formState } = form;
+  const { control, trigger, setError, setValue, clearErrors, resetField, setFocus, formState } =
+    form;
 
   // derived
   const identifier = useWatch({ control, name: 'identifier' });
-  const identifierKind = detectIdentifierKind(identifier);
-  const isIdentifierValid = isValidIdentifier(identifier);
-  const identityShown = displayIdentifier(identifier);
+  const identifierKind = useWatch({ control, name: 'kind' });
+  const isIdentifierValid = isValidIdentifier(identifier, identifierKind);
+  const identityShown = displayIdentifier(identifier, identifierKind);
 
   // callbacks
   const shake = (field: ShakeField) => {
     setShakeField(field);
     window.clearTimeout(shakeTimer.current);
     shakeTimer.current = window.setTimeout(() => setShakeField(null), SHAKE_MS);
+  };
+
+  const selectKind = (kind: IdentifierKind) => {
+    if (kind === identifierKind) return;
+    setValue('kind', kind);
+    setValue('identifier', '');
+    clearErrors('identifier');
+    setFocus('identifier');
   };
 
   const handleContinue = (event: FormEvent<HTMLFormElement>) => {
@@ -111,7 +129,7 @@ export const useLoginPage = (): UseLoginPageResult => {
   const handleValidSubmit = async (values: LoginFormInput) => {
     try {
       const response = await login({
-        identifier: normalizeIdentifier(values.identifier),
+        identifier: normalizeIdentifier(values.identifier, values.kind),
         password: values.password,
       });
       if (!isSuccess(response.data)) {
@@ -122,10 +140,12 @@ export const useLoginPage = (): UseLoginPageResult => {
         shake('password');
         return;
       }
-      // The session now lives in the cookie; the workspace reads the user from /auth/me.
+      // Login returns the same user /auth/me would, so seed it: the route guard then skips a round trip.
+      const { user } = response.data.data;
+      queryClient.setQueryData(meQueryOptions.queryKey, { user });
       // A role we don't know yet still lands somewhere: the sign-in already succeeded.
-      const role = response.data.data.user.role;
-      navigate((ROLE_META[role] ?? ROLE_META.company_admin).home, { replace: true });
+      const role = user.role;
+      navigate(ROLE_HOME[role] ?? ROLE_HOME.company_admin, { replace: true });
     } catch (error) {
       safeApiError(error, {
         context: { page: 'login', action: 'login' },
@@ -169,6 +189,7 @@ export const useLoginPage = (): UseLoginPageResult => {
     shakeField,
     showPassword,
     isSubmitting: formState.isSubmitting,
+    selectKind,
     handleContinue,
     handleSignIn,
     togglePassword,

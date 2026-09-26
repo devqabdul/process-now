@@ -7,6 +7,10 @@ interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   'aria-label': string;
 }
 
+// A toolbar's icon buttons (search, export, filters) sit outlined beside the search field.
+export const ICON_BUTTON_BORDERED =
+  'border border-line bg-surface hover:border-line-strong hover:bg-surface lg:size-9.5';
+
 // 44px touch target on phones, the design's 34px from lg up. Pass a 17px lucide icon as the child.
 export const IconButton = ({ className, type = 'button', ...props }: IconButtonProps) => (
   <button

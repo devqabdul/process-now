@@ -42,6 +42,15 @@ export class BillingController {
     return this.billing.findOne(companyId, id);
   }
 
+  /** The bill as a PDF, generated on request: `{ fileName, contentType, base64, vendor }` */
+  @Get(':id/pdf')
+  pdf(
+    @CompanyId() companyId: string,
+    @Param('id', new ParseIdPipe('id')) id: string,
+  ) {
+    return this.billing.pdf(companyId, id);
+  }
+
   /** Voids a bill raised in error; refuses if it has payments. */
   @Post(':id/void')
   @HttpCode(200)

@@ -13,7 +13,7 @@ export const CardTitle = ({
   ...props
 }: HTMLAttributes<HTMLHeadingElement>) => (
   <h2
-    className={cn('font-mono text-[11px] font-medium tracking-[0.1em] uppercase', className)}
+    className={cn('font-mono text-11 font-medium tracking-[0.1em] uppercase', className)}
     {...props}
   >
     {children}

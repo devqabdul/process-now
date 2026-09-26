@@ -13,9 +13,11 @@ interface FormFieldProps extends ComponentPropsWithRef<'input'> {
   error?: RhfFieldError | undefined;
   leading?: ReactNode;
   trailing?: ReactNode;
+  // A quiet line under the control (e.g. the amount in words); an error replaces it.
+  help?: ReactNode;
 }
 
-// Label + 52px field + reserved error line: the login form's field, minus its step animation.
+// Label, control and error in the design system's form rhythm (design-system.md → Forms).
 export const FormField = ({
   id,
   label,
@@ -23,24 +25,30 @@ export const FormField = ({
   error,
   leading,
   trailing,
+  help,
   // Lands on the wrapper, not the input: it is how a field spans a grid column.
   className,
   ...input
 }: FormFieldProps) => (
   <div className={className}>
-    <div className="mb-2 flex items-baseline justify-between gap-2">
+    <div className="mb-label flex items-baseline justify-between gap-2">
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
-      {hint && <span className="text-[11px] text-fg-subtle">{hint}</span>}
+      {hint && <span className="text-11 text-fg-subtle">{hint}</span>}
     </div>
     <InputShell invalid={!!error} leading={leading} trailing={trailing}>
       <input
         id={id}
         aria-invalid={!!error}
-        aria-describedby={error ? `${id}-error` : undefined}
+        aria-describedby={error ? `${id}-error` : help ? `${id}-help` : undefined}
         className={inputClasses}
         {...input}
       />
     </InputShell>
     <FieldError id={`${id}-error`} message={error?.message} />
+    {help && !error && (
+      <p id={`${id}-help`} className="mt-label text-xs leading-[1.45] text-fg-subtle">
+        {help}
+      </p>
+    )}
   </div>
 );

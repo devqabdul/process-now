@@ -7,6 +7,8 @@ interface MenuProps {
   label: string;
   children: (close: () => void) => ReactNode;
   className?: string;
+  // Restyles the ⋮ button, e.g. as a quick-action tile.
+  triggerClassName?: string;
 }
 
 /**
@@ -17,7 +19,7 @@ interface MenuProps {
  * scroll container and drag a horizontal scrollbar into view. A z-index alone cannot fix
  * that — an overflow clip ignores it — so the popup leaves the container instead.
  */
-export const Menu = ({ label, children, className }: MenuProps) => {
+export const Menu = ({ label, children, className, triggerClassName }: MenuProps) => {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, right: 0 });
   const trigger = useRef<HTMLButtonElement>(null);
@@ -66,7 +68,10 @@ export const Menu = ({ label, children, className }: MenuProps) => {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
-        className="flex size-11 items-center justify-center rounded-10 text-fg-subtle hover:bg-surface-muted hover:text-fg lg:size-8"
+        className={cn(
+          'flex size-11 items-center justify-center rounded-10 text-fg-subtle hover:bg-surface-muted hover:text-fg lg:size-8',
+          triggerClassName,
+        )}
       >
         <MoreVertical aria-hidden="true" className="size-4" strokeWidth={1.9} />
       </button>
@@ -100,7 +105,7 @@ export const MenuItem = ({
     role="menuitem"
     onClick={onClick}
     className={cn(
-      'flex w-full items-center gap-2 px-3 py-2.5 text-left text-[12.5px] transition-colors duration-150 focus-visible:outline-none',
+      'flex w-full items-center gap-2 px-3 py-2.5 text-left text-13 transition-colors duration-150 focus-visible:outline-none',
       tone === 'danger'
         ? 'text-danger-strong hover:bg-danger-soft focus-visible:bg-danger-soft'
         : 'hover:bg-surface-muted focus-visible:bg-surface-muted',

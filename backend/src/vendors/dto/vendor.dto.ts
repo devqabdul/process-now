@@ -1,5 +1,5 @@
 import { IsBoolean, IsString, MaxLength } from 'class-validator';
-import { PageQueryDto } from '../../common/dto/page-query.dto.js';
+import { ListQueryDto } from '../../common/dto/list-query.dto.js';
 import { IsName, IsPhone, Optional } from '../../common/validators.js';
 
 export class CreateVendorDto {
@@ -37,10 +37,5 @@ export class UpdateVendorDto {
   address?: string;
 }
 
-export class ListVendorsQueryDto extends PageQueryDto {
-  /** Matches name or phone */
-  @Optional()
-  @IsString()
-  @MaxLength(100)
-  q?: string;
-}
+/** `q` matches name, phone or address; sort by `name` (default) or `createdAt`. */
+export class ListVendorsQueryDto extends ListQueryDto {}

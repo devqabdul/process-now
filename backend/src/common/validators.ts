@@ -17,7 +17,7 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
-import { isDateString } from './dates.js';
+import { addDays, isDateString, today } from './dates.js';
 import { normalizeEmail, toMobileDigits } from './identifier.js';
 
 // Postgres text cannot hold \u0000; pasted clipboard junk otherwise reaches the
@@ -99,6 +99,14 @@ export const IsNumberPrefix = () =>
 /** 422 in the same shape as ValidationPipe errors. */
 export const fieldError = (field: string, message: string) =>
   new UnprocessableEntityException({ message, fields: { [field]: message } });
+
+/** Fills in a date window (default: the last 30 days) and caps it at a year. */
+export const resolveRange = (from: string | undefined, to = today()) => {
+  from ??= addDays(to, -29);
+  if (from > to) throw fieldError('from', '`from` must be on or before `to`');
+  if (from < addDays(to, -366)) throw fieldError('from', 'Pick at most a year');
+  return { from, to };
+};
 
 /** Calendar date as YYYY-MM-DD. */
 export const IsDateOnly = () =>

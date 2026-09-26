@@ -1,4 +1,4 @@
-import type { PageQuery } from '../common.types';
+import type { ListParams } from '../common.types';
 
 // Whether the bill counts the quantity received or the quantity returned.
 export type BillOn = 'in' | 'out';
@@ -44,4 +44,5 @@ export type UpdateServiceTypePayload = Partial<CreateServiceTypePayload> & {
   isActive?: boolean;
 };
 
-export type ServiceTypesQuery = PageQuery;
+// `q` matches the name. Sort: name (default), basePrice, createdAt.
+export type ServiceTypesQuery = ListParams;

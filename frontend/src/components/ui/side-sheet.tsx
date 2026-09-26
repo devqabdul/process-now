@@ -44,7 +44,7 @@ export const SideSheet = ({ open, title, description, children, onClose }: SideS
             <h2 id={titleId} className="text-base font-semibold">
               {title}
             </h2>
-            {description && <p className="mt-1 text-[12.5px] text-fg-subtle">{description}</p>}
+            {description && <p className="mt-1 text-13 text-fg-subtle">{description}</p>}
           </div>
           <IconButton aria-label="Close" onClick={onClose}>
             <X aria-hidden="true" className="size-4" strokeWidth={1.9} />

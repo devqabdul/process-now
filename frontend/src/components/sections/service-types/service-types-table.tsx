@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
 import type { ServiceType } from '@api/process-backend/service-types';
 import { LetterTile } from '@components/ui/avatar';
@@ -16,13 +16,13 @@ import {
 
 const helper = createColumnHelper<DataTableFeatures, ServiceType>();
 
-const buildColumns = (actions: ServiceTypeActionHandlers) =>
+// Column ids that sort are the API's sort keys: name, basePrice.
+export const buildServiceTypeColumns = (actions: ServiceTypeActionHandlers) =>
   helper.columns([
     helper.accessor('name', {
       header: 'Service',
       enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-[28%]' },
+      meta: { className: 'w-[28%]', hideable: false, exportValue: (service) => service.name },
       cell: ({ row }) => (
         <span className="flex items-center gap-2.5">
           <LetterTile name={row.original.name} />
@@ -34,8 +34,10 @@ const buildColumns = (actions: ServiceTypeActionHandlers) =>
     helper.accessor('basePrice', {
       header: 'Price',
       enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-[16%] whitespace-nowrap' },
+      meta: {
+        className: 'w-[16%] whitespace-nowrap',
+        exportValue: (service) => service.basePrice,
+      },
       cell: ({ row }) => (
         <>
           <span className="font-medium">{formatMoney(row.original.basePrice)}</span>
@@ -45,39 +47,39 @@ const buildColumns = (actions: ServiceTypeActionHandlers) =>
     }),
     helper.accessor('baseCost', {
       header: 'Cost',
-      enableSorting: true,
-      sortFn: 'text',
-      meta: { className: 'w-[14%] whitespace-nowrap text-fg-subtle' },
+      meta: {
+        className: 'w-[14%] whitespace-nowrap text-fg-subtle',
+        exportValue: (service) => service.baseCost,
+      },
       cell: ({ row }) => formatMoney(row.original.baseCost),
     }),
     helper.display({
       id: 'billOn',
       header: 'Billed on',
-      meta: { className: 'w-[20%]' },
+      meta: {
+        className: 'w-[20%]',
+        exportValue: (service) => (service.billOn === 'in' ? 'received' : 'returned'),
+      },
       cell: ({ row }) => <BillOnBadge billOn={row.original.billOn} />,
     }),
     helper.display({
       id: 'actions',
       header: '',
-      meta: { className: 'w-12' },
+      meta: { label: 'Actions', hideable: false },
       cell: ({ row }) => <ServiceTypeActions serviceType={row.original} {...actions} />,
     }),
   ]);
 
-interface ServiceTypesTableProps extends ServiceTypeActionHandlers {
-  rows: ServiceType[];
-  loading: boolean;
-  empty: ReactNode;
-}
+type ServiceTypesTableProps = Omit<
+  ComponentProps<typeof DataTable<ServiceType>>,
+  'label' | 'rowKey' | 'skeletonRows'
+>;
 
-export const ServiceTypesTable = ({ rows, loading, empty, ...actions }: ServiceTypesTableProps) => (
+export const ServiceTypesTable = (props: ServiceTypesTableProps) => (
   <DataTable
-    columns={buildColumns(actions)}
-    rows={rows}
-    rowKey={(serviceType) => serviceType.id}
+    {...props}
     label="Service types"
-    loading={loading}
+    rowKey={(serviceType) => serviceType.id}
     skeletonRows={SERVICE_TYPE_SKELETON_ROWS}
-    empty={empty}
   />
 );

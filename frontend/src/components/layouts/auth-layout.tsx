@@ -1,42 +1,14 @@
-import { ChevronRight } from 'lucide-react';
+import { ClipboardList, NotebookPen, ReceiptText } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { BrandLockup } from '@components/shared/brand-lockup';
-import { cn } from '@lib/cn';
 
-// Marketing snapshot on the brand panel — illustrative figures from the design, not live data.
-const PIPELINE = [
-  {
-    label: 'Received',
-    count: '18',
-    dot: 'bg-brand-faint',
-    value: 'text-brand-muted',
-    pulse: false,
-  },
-  {
-    label: 'Fusing',
-    count: '42',
-    dot: 'bg-warning-bright',
-    value: 'text-warning-bright',
-    pulse: true,
-  },
-  {
-    label: 'Inspection',
-    count: '31',
-    dot: 'bg-brand-muted',
-    value: 'text-brand-muted',
-    pulse: false,
-  },
-  {
-    label: 'Dispatch',
-    count: '26',
-    dot: 'bg-success-bright',
-    value: 'text-success-bright',
-    pulse: true,
-  },
+// What the product does today — no figures, so nothing here can go stale or mislead.
+const FEATURES = [
+  { icon: ClipboardList, text: 'Log every lot a vendor drops off, and what goes back.' },
+  { icon: ReceiptText, text: 'Bill on return at the price agreed, and track what is paid.' },
+  { icon: NotebookPen, text: "See the day's earnings, costs and machine hours at a glance." },
 ];
-
-const TRUST_MARKS = ['SOC 2', 'ISO 27001', '256-bit TLS'];
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -60,64 +32,30 @@ export const AuthLayout = ({ children }: AuthLayoutProps) => (
         <h2 className="mb-4.5 text-[40px] leading-[1.14] font-semibold tracking-[-0.03em] text-pretty">
           Every order, job and payment in one place.
         </h2>
-        <p className="mb-9 max-w-[410px] text-[14.5px] leading-[1.7] text-pretty text-brand-muted">
-          Vendors place orders. Operators move jobs through your workflow. Admins see all of it,
-          live.
+        <p className="mb-9 max-w-[410px] text-sm leading-[1.7] text-pretty text-brand-muted">
+          Orders, bills and daily production for job-work shops — one sign-in for the whole
+          business.
         </p>
 
-        <div className="rounded-14 border border-white/9 bg-white/4 px-4.5 py-4.25">
-          <div className="mb-3.75 flex items-center gap-2">
-            <span className="size-1.5 animate-pulse-dot rounded-full bg-success-bright" />
-            <span className="font-mono text-[9.5px] tracking-[0.11em] text-brand-muted uppercase">
-              Live on the floor
-            </span>
-            <span className="ml-auto font-mono text-[9.5px] text-brand-faint">117 jobs</span>
-          </div>
-          <div className="flex items-center">
-            {PIPELINE.map((stage, index) => (
-              <div key={stage.label} className="flex min-w-0 flex-1 items-center">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1.75 flex items-center gap-1.5">
-                    <span
-                      className={cn(
-                        'size-2 flex-none rounded-full',
-                        stage.dot,
-                        stage.pulse && 'animate-pulse-dot',
-                      )}
-                    />
-                    <span className={cn('font-mono text-[13px] font-semibold', stage.value)}>
-                      {stage.count}
-                    </span>
-                  </div>
-                  <div className="truncate pr-2 text-[9.5px] text-brand-muted">{stage.label}</div>
-                </div>
-                {index < PIPELINE.length - 1 && (
-                  <ChevronRight
-                    className="mr-2 size-3 flex-none text-brand-line"
-                    strokeWidth={2.4}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
+        <ul className="space-y-3.5">
+          {FEATURES.map(({ icon: Icon, text }) => (
+            <li key={text} className="flex items-center gap-3 text-sm text-brand-fg">
+              <span className="grid size-8 flex-none place-items-center rounded-10 border border-white/9 bg-white/4">
+                <Icon className="size-4 text-brand-muted" strokeWidth={2} />
+              </span>
+              {text}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      <div className="relative flex items-center gap-3.25 font-mono text-[10px] text-brand-faint">
-        <span>© 2026 ProcessNow</span>
-        {TRUST_MARKS.map((mark) => (
-          <span key={mark} className="flex items-center gap-3.25">
-            <span className="h-2.5 w-px bg-brand-line" />
-            {mark}
-          </span>
-        ))}
-      </div>
+      <p className="relative font-mono text-11 text-brand-faint">© 2026 ProcessNow</p>
     </aside>
 
     <main className="relative flex min-w-0 flex-1 flex-col items-center justify-center bg-surface px-5.5 py-7 min-[1041px]:px-10 min-[1041px]:py-11">
       <div className="absolute top-6.5 right-8 flex items-center gap-4">
-        <span className="text-[12.5px] text-fg-subtle">Need help?</span>
-        <a href="mailto:support@processnow.io" className="text-[12.5px] font-semibold">
+        <span className="text-13 text-fg-subtle">Need help?</span>
+        <a href="mailto:support@processnow.io" className="text-13 font-semibold">
           Contact support
         </a>
       </div>

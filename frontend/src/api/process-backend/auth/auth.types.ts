@@ -9,7 +9,7 @@ export interface AuthUser {
    * /auth/me so a page load doesn't spend a second round trip asking what this user already is.
    * Accent is one of our token names ("brand", "warning"), never a hex.
    */
-  roleMeta?: { label: string; accent: string };
+  roleMeta: { label: string; accent: string };
   // Whichever one they sign in with; at least one is set.
   phone: string | null;
   email: string | null;

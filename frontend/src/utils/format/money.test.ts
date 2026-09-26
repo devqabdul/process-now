@@ -16,6 +16,7 @@ describe('formatMoney', () => {
 
   it('shows a dash rather than ₹NaN for a malformed amount', () => {
     expect(formatMoney('')).toBe('—');
+    expect(formatMoney(undefined)).toBe('—');
     expect(formatMoney('not-a-number')).toBe('—');
   });
 });

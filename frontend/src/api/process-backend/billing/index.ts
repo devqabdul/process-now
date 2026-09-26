@@ -1,3 +1,3 @@
 export * from './billing.types';
-export { getBill, getBills, recordPayment, voidBill } from './billing-service';
-export { billsKeys, useBill, useBills } from './use-billing-queries';
+export { getBill, getBillPdf, getBills, recordPayment, voidBill } from './billing-service';
+export { billsKeys, useBill, useBills, useBillsInfinite } from './use-billing-queries';

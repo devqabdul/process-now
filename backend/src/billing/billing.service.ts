@@ -4,15 +4,24 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Decimal } from '@prisma/client/runtime/client';
+import { assertBankAccount } from '../common/bank-account.js';
 import { companyPrefix } from '../common/company-number.js';
 import { readSettings } from '../common/company-settings.js';
-import { formatDocumentNo } from '../common/document-number.js';
+import {
+  formatDocumentNo,
+  parseDocumentNo,
+} from '../common/document-number.js';
 import { fitsInMoneyColumn, itemMoney, money } from '../common/money.js';
-import { paginate } from '../common/dto/page-query.dto.js';
-import { billTotals } from '../common/pricing.js';
+import {
+  listArgs,
+  paged,
+  type ListSpec,
+} from '../common/dto/list-query.dto.js';
+import { billableQty, billTotals } from '../common/pricing.js';
 import { fieldError } from '../common/validators.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { renderBillPdf } from './bill-pdf.js';
 import type { ListBillsQueryDto, RecordPaymentDto } from './dto/billing.dto.js';
 
 const listInclude = {
@@ -26,7 +35,10 @@ const listInclude = {
 } as const;
 
 const detailInclude = {
-  payments: { orderBy: { paidAt: 'asc' } },
+  payments: {
+    include: { bankAccount: { select: { id: true, name: true } } },
+    orderBy: { paidAt: 'asc' },
+  },
   order: {
     include: {
       vendor: { select: { id: true, name: true, phone: true, address: true } },
@@ -57,6 +69,20 @@ type BillAmounts = {
     }[];
   } | null;
 };
+
+/** "Finish: Stiff, Part: Front" from the options snapshotted on an item; jsonb is parsed, never cast. */
+const describeOptions = (json: Prisma.JsonValue) =>
+  (Array.isArray(json) ? json : [])
+    .filter(
+      (o): o is { group: string; name: string } =>
+        !!o &&
+        typeof o === 'object' &&
+        !Array.isArray(o) &&
+        typeof o.group === 'string' &&
+        typeof o.name === 'string',
+    )
+    .map((o) => `${o.group}: ${o.name}`)
+    .join(', ');
 
 /** Status is derived, never stored: a voided bill owes nothing. */
 function withStatus<T extends BillAmounts>(bill: T, prefix: string | null) {
@@ -91,6 +117,25 @@ function withStatus<T extends BillAmounts>(bill: T, prefix: string | null) {
 
 /** Voided bills are excluded everywhere unless explicitly asked for. */
 export const notVoided = { voidedAt: null } satisfies Prisma.BillWhereInput;
+
+const billList: ListSpec<
+  Prisma.BillWhereInput,
+  Prisma.BillOrderByWithRelationInput
+> = {
+  search: (term) => {
+    const billNo = parseDocumentNo(term);
+    return [
+      { order: { vendor: { name: { contains: term, mode: 'insensitive' } } } },
+      ...(billNo !== undefined ? [{ billNo }] : []),
+    ];
+  },
+  sortable: {
+    issuedAt: (dir) => [{ issuedAt: dir }],
+    billNo: (dir) => [{ billNo: dir }],
+    total: (dir) => [{ total: dir }],
+  },
+  defaultSort: '-issuedAt',
+};
 
 @Injectable()
 export class BillingService {
@@ -134,28 +179,36 @@ export class BillingService {
     });
   }
 
-  /** due/paid is filtered in SQL against the maintained amount_paid column. */
+  /** due/paid is filtered in SQL against the maintained amount_paid column; several statuses OR together. */
   async findAll(companyId: string, query: ListBillsQueryDto) {
-    const { status } = query;
-    const prefix = await companyPrefix(this.prisma, companyId);
-    const bills = await this.prisma.bill.findMany({
-      where: {
-        companyId,
-        ...(status === 'voided'
-          ? { voidedAt: { not: null } }
-          : { ...notVoided }),
-        ...(status === 'due' && {
-          amountPaid: { lt: this.prisma.bill.fields.total },
-        }),
-        ...(status === 'paid' && {
-          amountPaid: { gte: this.prisma.bill.fields.total },
-        }),
+    const byStatus = {
+      voided: { voidedAt: { not: null } },
+      due: { ...notVoided, amountPaid: { lt: this.prisma.bill.fields.total } },
+      paid: {
+        ...notVoided,
+        amountPaid: { gte: this.prisma.bill.fields.total },
       },
-      include: listInclude,
-      orderBy: [{ issuedAt: 'desc' }, { id: 'desc' }],
-      ...paginate(query),
-    });
-    return bills.map((bill) => withStatus(bill, prefix));
+    } satisfies Record<string, Prisma.BillWhereInput>;
+    const args = listArgs(
+      {
+        companyId,
+        ...(query.status
+          ? { OR: query.status.map((s) => byStatus[s]) }
+          : notVoided),
+      },
+      query,
+      billList,
+    );
+    const [prefix, bills, total] = await Promise.all([
+      companyPrefix(this.prisma, companyId),
+      this.prisma.bill.findMany({ ...args, include: listInclude }),
+      this.prisma.bill.count({ where: args.where }),
+    ]);
+    return paged(
+      bills.map((bill) => withStatus(bill, prefix)),
+      total,
+      query,
+    );
   }
 
   async findOne(companyId: string, id: string) {
@@ -167,6 +220,65 @@ export class BillingService {
       }),
     ]);
     return withStatus(bill, prefix);
+  }
+
+  /**
+   * The bill as a PDF, drawn on request from its stored figures and never saved, so it always
+   * matches the bill, payments included. Base64 inside the usual envelope.
+   */
+  async pdf(companyId: string, id: string) {
+    const [prefix, company, bill] = await Promise.all([
+      companyPrefix(this.prisma, companyId),
+      this.prisma.company.findUniqueOrThrow({
+        where: { id: companyId },
+        select: { name: true, gstNo: true },
+      }),
+      this.prisma.bill.findUniqueOrThrow({
+        where: { id, companyId },
+        include: detailInclude,
+      }),
+    ]);
+    const view = withStatus(bill, prefix);
+    const { vendor } = bill.order;
+    const buffer = await renderBillPdf({
+      company,
+      vendor,
+      billNo: view.billNo,
+      orderNo: view.order.orderNo,
+      issuedAt: bill.issuedAt,
+      status: view.status,
+      voidReason: bill.voidReason,
+      lines: bill.order.items.map((item) => ({
+        service: item.serviceType.name,
+        options: describeOptions(item.selectedOptions),
+        qty: billableQty(
+          item.billOn,
+          item.qtyIn,
+          item.qtyOut ?? item.qtyIn,
+        ).toString(),
+        unit: item.serviceType.unit,
+        rate: money(item.unitPrice),
+        amount: money(item.amount ?? 0),
+      })),
+      payments: bill.payments.map((p) => ({
+        paidAt: p.paidAt,
+        method: p.method,
+        account: p.bankAccount?.name ?? null,
+        amount: money(p.amount),
+      })),
+      subtotal: view.subtotal,
+      gstAmount: view.gstAmount,
+      total: view.total,
+      amountPaid: view.amountPaid,
+      amountDue: view.amountDue,
+    });
+    return {
+      fileName: `bill-${view.billNo}.pdf`,
+      contentType: 'application/pdf',
+      base64: buffer.toString('base64'),
+      // For sharing: WhatsApp opens a chat to this number.
+      vendor: { name: vendor.name, phone: vendor.phone },
+    };
   }
 
   async recordPayment(
@@ -197,6 +309,8 @@ export class BillingService {
             : 'This bill is fully paid',
         );
       }
+      if (dto.bankAccountId)
+        await assertBankAccount(tx, companyId, dto.bankAccountId);
       await tx.payment.create({
         data: { ...dto, companyId, billId, createdBy: actor, updatedBy: actor },
       });

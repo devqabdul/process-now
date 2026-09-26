@@ -31,7 +31,7 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     renderLogin();
 
-    await user.type(screen.getByLabelText('Email or mobile number'), '98000 2222');
+    await user.type(screen.getByLabelText('Mobile number'), '98000 2222');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Mobile number must be 10 digits.');
@@ -60,7 +60,7 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     renderLogin();
 
-    await user.type(screen.getByLabelText('Email or mobile number'), '+91 98000 22222');
+    await user.type(screen.getByLabelText('Mobile number'), '+91 98000 22222');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.type(await screen.findByLabelText('Password'), 'secret');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
@@ -79,7 +79,8 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     renderLogin();
 
-    await user.type(screen.getByLabelText('Email or mobile number'), 'asha@fusenow.in');
+    await user.click(screen.getByRole('button', { name: 'Email' }));
+    await user.type(screen.getByLabelText('Email address'), 'asha@fusenow.in');
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.type(await screen.findByLabelText('Password'), 'wrong');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
@@ -87,5 +88,15 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Incorrect email / mobile number or password.',
     );
+  });
+
+  it('starts on mobile and keeps the number to ten digits', async () => {
+    const user = userEvent.setup();
+    renderLogin();
+
+    expect(screen.getByRole('button', { name: 'Mobile' })).toHaveAttribute('aria-pressed', 'true');
+    const mobile = screen.getByLabelText('Mobile number');
+    await user.type(mobile, '98000222229999');
+    expect(mobile).toHaveValue('9800022222');
   });
 });

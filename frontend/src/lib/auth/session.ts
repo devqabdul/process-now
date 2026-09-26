@@ -1,3 +1,5 @@
+import { isAxiosError } from 'axios';
+
 import { meQueryOptions } from '@api/process-backend/auth';
 import type { AuthUser } from '@api/process-backend/auth';
 import { queryClient } from '@app/providers/query-client';
@@ -9,7 +11,8 @@ import { queryClient } from '@app/providers/query-client';
  *
  * `staleTime: 'static'` serves the cached session for the rest of the session
  * rather than refetching on every navigation. A 401 means "not signed in",
- * which is an answer, not a failure — hence null instead of a throw.
+ * which is an answer, not a failure — hence null. Anything else (a 502 while the API
+ * restarts, no network) rethrows to the route error screen instead of signing the user out.
  */
 export const loadSession = async (): Promise<AuthUser | null> => {
   try {
@@ -18,8 +21,9 @@ export const loadSession = async (): Promise<AuthUser | null> => {
       staleTime: 'static',
     });
     return user;
-  } catch {
-    return null;
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 401) return null;
+    throw error;
   }
 };
 

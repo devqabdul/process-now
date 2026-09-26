@@ -4,10 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { http } from 'msw';
 import { createMemoryRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Vendor } from '@api/process-backend/vendors';
-import { API, envelope, server } from '@test/server';
+import { API, envelope, paged, server } from '@test/server';
 
 import { VendorsListPage } from './vendors-list-page';
 
@@ -52,9 +52,11 @@ beforeEach(() => {
     http.get(`${API}/vendors`, ({ request }) => {
       const q = new URL(request.url).searchParams.get('q')?.toLowerCase() ?? '';
       return envelope(
-        q
-          ? VENDORS.filter((v) => v.name.toLowerCase().includes(q) || v.phone.includes(q))
-          : VENDORS,
+        paged(
+          q
+            ? VENDORS.filter((v) => v.name.toLowerCase().includes(q) || v.phone.includes(q))
+            : VENDORS,
+        ),
       );
     }),
     http.post(`${API}/vendors`, async ({ request }) => {
@@ -79,7 +81,14 @@ describe('VendorsListPage', () => {
     renderPage();
     await screen.findByText('Ravi Textiles');
 
-    await user.type(screen.getByLabelText('Search vendors by name or mobile number'), 'meher');
+    // Search sits behind its icon button until opened.
+    await user.click(
+      screen.getByRole('button', { name: 'Search vendors by name or mobile number' }),
+    );
+    await user.type(
+      await screen.findByRole('searchbox', { name: 'Search vendors by name or mobile number' }),
+      'meher',
+    );
 
     expect(await screen.findByText('Meher Silk Mills')).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText('Ravi Textiles')).not.toBeInTheDocument());
@@ -136,5 +145,51 @@ describe('VendorsListPage', () => {
     await waitFor(() => expect(sent).toHaveBeenCalledWith({ isActive: false }));
     // Retiring must never read as deleting: the vendor's history is still there.
     expect(await screen.findByText(/past orders and bills are untouched/)).toBeInTheDocument();
+  });
+});
+
+describe('VendorsListPage on a desktop', () => {
+  // The table (and its pagination) only renders from lg: up.
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (media: string) => ({
+      matches: true,
+      media,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('asks the API for the next page, and a new search starts again at page 1', async () => {
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get(`${API}/vendors`, ({ request }) => {
+        const params = new URL(request.url).searchParams;
+        seen.push(params);
+        const page = Number(params.get('page'));
+        return envelope(paged(page === 2 ? [VENDORS[1]] : [VENDORS[0]], { page, total: 40 }));
+      }),
+    );
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('Ravi Textiles');
+
+    await user.click(screen.getByRole('button', { name: 'Page 2' }));
+
+    expect(await screen.findByText('Meher Silk Mills')).toBeInTheDocument();
+    const second = seen.at(-1);
+    expect(second?.get('page')).toBe('2');
+    // Defaults stay off the wire: only the page number changed.
+    expect(second?.get('pageSize')).toBeNull();
+    expect(second?.get('sort')).toBeNull();
+
+    // On a desktop the search field sits open in the toolbar row.
+    await user.type(
+      await screen.findByRole('searchbox', { name: 'Search vendors by name or mobile number' }),
+      'ravi',
+    );
+
+    await waitFor(() => expect(seen.at(-1)?.get('q')).toBe('ravi'));
+    expect(seen.at(-1)?.get('page')).toBeNull(); // back to page 1, the default
   });
 });

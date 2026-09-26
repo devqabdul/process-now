@@ -4,7 +4,7 @@ import { cn } from '@lib/cn';
 
 import { Spinner } from './spinner';
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'danger-outline' | 'ghost';
 type ButtonSize = 'lg' | 'md' | 'sm';
 
 const VARIANTS: Record<ButtonVariant, string> = {
@@ -15,15 +15,18 @@ const VARIANTS: Record<ButtonVariant, string> = {
   // White on --pn-danger-solid is 5.10:1 light / 5.97:1 dark; -strong flips light in dark
   // mode and must never carry white text.
   danger:
-    'bg-danger-solid text-primary-fg hover:shadow-button active:translate-y-px disabled:hover:shadow-none',
+    'bg-danger-solid text-brand-fg hover:shadow-button active:translate-y-px disabled:hover:shadow-none',
+  // The Cancel beside a destructive action: same weight and hue, so the pair reads as one choice.
+  'danger-outline':
+    'border-[1.5px] border-danger-solid bg-surface text-danger-strong hover:bg-danger-softer',
   ghost: 'bg-transparent text-fg-subtle hover:text-fg',
 };
 
 const SIZES: Record<ButtonSize, string> = {
-  lg: 'h-13 w-full rounded-12 text-[14.5px]',
+  lg: 'h-13 w-full rounded-12 text-sm',
   md: 'h-11 rounded-12 px-5 text-sm',
   // Toolbar size: 44px touch target on phones, the design's 38px from lg up.
-  sm: 'h-11 rounded-10 px-3.5 text-[12.5px] lg:h-9.5',
+  sm: 'h-11 rounded-10 px-3.5 text-13 lg:h-9.5',
 };
 
 // Shared with links that look like buttons (e.g. a router <Link>).

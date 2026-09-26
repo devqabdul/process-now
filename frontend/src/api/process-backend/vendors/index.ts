@@ -1,3 +1,8 @@
 export * from './vendors.types';
-export { createVendor, getVendors, updateVendor } from './vendors-service';
-export { useVendors, vendorsKeys } from './use-vendors-queries';
+export { createVendor, getVendors, getVendorStatement, updateVendor } from './vendors-service';
+export {
+  useVendors,
+  useVendorsInfinite,
+  useVendorStatement,
+  vendorsKeys,
+} from './use-vendors-queries';

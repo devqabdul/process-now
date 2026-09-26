@@ -7,4 +7,4 @@ export {
   returnOrder,
   startOrder,
 } from './orders-service';
-export { ordersKeys, useOrder, useOrders } from './use-orders-queries';
+export { ordersKeys, useOrder, useOrders, useOrdersInfinite } from './use-orders-queries';

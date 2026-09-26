@@ -1,5 +1,5 @@
-import { IsIn, Min } from 'class-validator';
-import { PageQueryDto } from '../../common/dto/page-query.dto.js';
+import { IsIn, IsUUID, Min } from 'class-validator';
+import { ListQueryDto, ToArray } from '../../common/dto/list-query.dto.js';
 import { IsAmount, IsName, Optional } from '../../common/validators.js';
 
 export const PAYMENT_METHODS = [
@@ -23,11 +23,18 @@ export class RecordPaymentDto {
 
   @IsIn(PAYMENT_METHODS)
   method: (typeof PAYMENT_METHODS)[number];
+
+  /** The account the money landed in; optional, left out of every statement when unset */
+  @Optional()
+  @IsUUID()
+  bankAccountId?: string;
 }
 
-export class ListBillsQueryDto extends PageQueryDto {
-  /** Computed from payments; voided bills are excluded unless asked for */
+/** `q` matches vendor name or the bill number; sort by `issuedAt` (default `-issuedAt`), `billNo` or `total`. */
+export class ListBillsQueryDto extends ListQueryDto {
+  /** Computed from payments; repeat to combine. Voided bills are excluded unless asked for */
   @Optional()
-  @IsIn(['due', 'paid', 'voided'])
-  status?: 'due' | 'paid' | 'voided';
+  @ToArray()
+  @IsIn(['due', 'paid', 'voided'], { each: true })
+  status?: ('due' | 'paid' | 'voided')[];
 }

@@ -31,6 +31,7 @@ export class DashboardService {
       returnedItems,
       log,
       company,
+      dayExpenses,
     ] = await Promise.all([
       this.prisma.order.findMany({
         where: { companyId, status: { in: [...PENDING] } },
@@ -91,6 +92,10 @@ export class DashboardService {
         where: { id: companyId },
         select: { settings: true, numberPrefix: true },
       }),
+      this.prisma.expense.aggregate({
+        where: { companyId, spentOn: toDateColumn(date) },
+        _sum: { amount: true },
+      }),
     ]);
 
     // Quantities are summed per unit: adding pieces to kg means nothing.
@@ -147,6 +152,8 @@ export class DashboardService {
       earnings: money(sum(dayBills.map((b) => b.total))),
       estimatedCost: money(estimatedCost),
       estimatedProfit: money(revenue.minus(estimatedCost)),
+      // Shown beside profit, not subtracted: how a company nets them is its own call.
+      expenses: money(dayExpenses._sum.amount ?? 0),
     };
   }
 }

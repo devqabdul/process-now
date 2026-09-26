@@ -35,15 +35,15 @@ carries a `-- <reason>`; that is the budget, and adding one means writing the re
 
 ## Live regions
 
-| Region                                         | Where                                                                      |
-| ---------------------------------------------- | -------------------------------------------------------------------------- |
-| `role="alert"` per-field error                 | `ui/field-error.tsx`                                                       |
-| `role="alert"` form-level error                | `errors.root?.message` block in `create-company-page.tsx`                  |
-| `role="status" aria-live="polite"` page wait   | `shared/loading-mark.tsx` — "Opening Orders…" while a page chunk loads     |
-| `role="status"` result count                   | `companies-list-page.tsx` — **always mounted**, `empty:sr-only` when blank |
-| `role="status"` success card                   | `create-company-page.tsx` after a company is created                       |
-| `role="progressbar" aria-label="Loading page"` | `shared/route-progress.tsx`                                                |
-| `aria-busy`                                    | `ui/button.tsx` while loading, `ui/data-table.tsx` while loading           |
+| Region                                         | Where                                                                                                                |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `role="alert"` per-field error                 | `ui/field-error.tsx`                                                                                                 |
+| `role="alert"` form-level error                | `errors.root?.message` block in `create-company-page.tsx`                                                            |
+| `role="status" aria-live="polite"` page wait   | `shared/loading-mark.tsx` — "Opening Orders…" while a page chunk loads                                               |
+| `role="status"` result count                   | `companies-list-page.tsx` — **always mounted**, `empty:sr-only` when blank                                           |
+| `role="status"` success card                   | `create-company-page.tsx` after a company is created                                                                 |
+| `role="progressbar" aria-label="Loading page"` | `shared/route-progress.tsx`                                                                                          |
+| `aria-busy`                                    | `ui/button.tsx` while loading; `ui/data-table.tsx` while loading or refreshing; `shared/card-list.tsx` while loading |
 
 A sortable `DataTable` column puts a real `<button>` in the `<th>` and reflects the state in
 `aria-sort` on the `<th>` itself (`none` / `ascending` / `descending`), with a chevron for sighted
@@ -102,8 +102,8 @@ the login panel's drifting gradients and the pulse dots — is inside that block
 
 ## Known gaps
 
-- **Fixed px type scale.** Sizes are arbitrary values (`text-[12.5px]`) taken from the design
-  file. They don't respond to the browser's font-size preference.
+- **Fixed px display headings.** Body text is on a rem scale, but headings of 22px and up are
+  still pixel values and don't respond to the browser's font-size preference.
 - **No automated a11y testing.** No axe, no CI contrast check; the ratios in `tailwind.css` are
   hand-measured comments. The component tests assert names, roles and `required`, nothing more.
 - **`autoFocus` on the login password input** (one documented disable). Deliberate: the step

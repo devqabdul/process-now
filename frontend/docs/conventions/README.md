@@ -4,7 +4,7 @@ Detailed code-pattern docs for the ProcessNow frontend. The high-level rules liv
 [`CLAUDE.md`](../../CLAUDE.md); this folder is the detail. **Read the relevant file before working
 in that area.**
 
-> **The frontend calls the real API.** All nine domains fetch through the shared axios client via
+> **The frontend calls the real API.** All eleven domains fetch through the shared axios client via
 > `unwrap(getThing())`, and the backend's DB-backed e2e suite passes. The two `*.fixtures.ts` files
 > that remain are test data for `companies-list-page.test.tsx` and `dashboard-page.test.tsx`. See
 > [`api-layer.md`](./api-layer.md).

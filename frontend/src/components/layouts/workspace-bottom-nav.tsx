@@ -13,7 +13,7 @@ interface WorkspaceBottomNavProps {
 }
 
 const TAB =
-  'flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium text-fg-subtle transition-colors duration-150 hover:no-underline';
+  'flex min-h-16 flex-1 flex-col items-center justify-center gap-1 px-1 text-11 font-medium text-fg-subtle transition-colors duration-150 hover:no-underline';
 
 const Tab = ({ item }: { item: NavItem }) => (
   <NavLink
@@ -24,7 +24,7 @@ const Tab = ({ item }: { item: NavItem }) => (
     <span className="relative">
       <item.icon aria-hidden="true" className="size-5.5" strokeWidth={1.7} />
       {item.badge !== undefined && (
-        <span className="absolute -top-1 -right-2 grid min-w-4 place-items-center rounded-full border-[1.5px] border-surface bg-danger px-1 font-mono text-[9px] font-semibold text-brand-fg">
+        <span className="absolute -top-1 -right-2 grid min-w-4 place-items-center rounded-full border-[1.5px] border-surface bg-danger px-1 font-mono text-11 font-semibold text-brand-fg">
           {item.badge}
         </span>
       )}

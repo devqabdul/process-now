@@ -29,7 +29,7 @@ export const DateSwitcher = ({ date, max, onChange }: DateSwitcherProps) => {
         value={date}
         max={max}
         onChange={(event) => event.target.value && onChange(event.target.value)}
-        className="h-11 rounded-10 border border-line-field bg-surface px-3 font-mono text-[12.5px] text-fg outline-none transition-[border-color,box-shadow] duration-150 focus:border-focus focus:shadow-focus lg:h-9.5"
+        className="h-11 rounded-10 border border-line-field bg-surface px-3 font-mono text-13 text-fg outline-none transition-[border-color,box-shadow] duration-150 focus:border-focus focus:shadow-focus lg:h-9.5"
       />
       <IconButton
         aria-label="Next day"

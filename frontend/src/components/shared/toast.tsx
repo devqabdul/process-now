@@ -8,13 +8,15 @@ const DISMISS_AFTER_MS = 6_000;
 interface ToastProps {
   message: string | null;
   onDismiss: () => void;
+  // One follow-up, e.g. Undo after a one-tap change.
+  action?: { label: string; onClick: () => void } | undefined;
 }
 
 /**
  * One message, owned by the page that raised it — no provider, no queue. The region stays
  * mounted so a screen reader announces the message as a change rather than a new node.
  */
-export const Toast = ({ message, onDismiss }: ToastProps) => {
+export const Toast = ({ message, onDismiss, action }: ToastProps) => {
   // effects
   useEffect(() => {
     if (!message) return;
@@ -37,7 +39,16 @@ export const Toast = ({ message, onDismiss }: ToastProps) => {
             className="mt-px size-4 flex-none text-success"
             strokeWidth={1.8}
           />
-          <p className="flex-1 text-[12.5px] leading-[1.5] text-success">{message}</p>
+          <p className="flex-1 text-13 leading-[1.5] text-success">{message}</p>
+          {action && (
+            <button
+              type="button"
+              onClick={action.onClick}
+              className="-my-2 h-11 flex-none rounded-8 px-2.5 text-13 font-semibold text-success underline-offset-2 hover:underline lg:h-8"
+            >
+              {action.label}
+            </button>
+          )}
           <IconButton aria-label="Dismiss" onClick={onDismiss}>
             <X aria-hidden="true" className="size-3.75" strokeWidth={2} />
           </IconButton>

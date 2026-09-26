@@ -15,6 +15,7 @@ const COMPANY_ADMIN: AuthUser = {
   id: 'usr_1',
   name: 'Asha Rao',
   role: 'company_admin',
+  roleMeta: { label: 'Company Admin', accent: 'warning' },
   phone: '9800011111',
   email: null,
   company: { id: 'cmp_1', name: 'FuseNow' },
@@ -24,6 +25,7 @@ const SUPER_ADMIN: AuthUser = {
   id: 'usr_2',
   name: 'Priya Kulkarni',
   role: 'super_admin',
+  roleMeta: { label: 'Super Admin', accent: 'brand' },
   phone: null,
   email: 'priya@processnow.io',
   company: null,
@@ -80,6 +82,12 @@ describe('route guards', () => {
     signedInAs(COMPANY_ADMIN);
     const company = await goTo('/');
     expect(company.state.location.pathname).toBe('/');
+  });
+
+  it("doesn't sign anyone out when the API is down rather than saying no", async () => {
+    server.use(http.get(`${API}/auth/me`, () => envelope(null, 502)));
+    const router = await goTo('/');
+    expect(router.state.location.pathname).toBe('/');
   });
 
   it('sends an already signed-in user away from the sign-in screen', async () => {
